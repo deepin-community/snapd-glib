@@ -11,6 +11,7 @@
 #define SNAPD_REQUEST_H
 
 #include <QtCore/QObject>
+#include <QtCore/QScopedPointer>
 #include <Snapd/Change>
 
 class QSnapdRequestPrivate;
@@ -61,7 +62,11 @@ public:
         ChannelNotAvailable,
         NotASnap,
         DNSFailure,
-        OptionNotFound
+        OptionNotFound,
+        AppNotFound,
+        ArchitectureNotAvailable,
+        ChangeConflict,
+        InterfacesUnchanged
     };
     Q_ENUM(QSnapdError)
 
@@ -86,7 +91,7 @@ Q_SIGNALS:
     void complete ();
 
 private:
-    QSnapdRequestPrivate *d_ptr;
+    QScopedPointer<QSnapdRequestPrivate> d_ptr;
     Q_DECLARE_PRIVATE (QSnapdRequest);
 };
 

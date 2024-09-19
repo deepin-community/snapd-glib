@@ -49,18 +49,24 @@ _snapd_get_apps_get_apps (SnapdGetApps *self)
 }
 
 static SoupMessage *
-generate_get_apps_request (SnapdRequest *request)
+generate_get_apps_request (SnapdRequest *request, GBytes **body)
 {
     SnapdGetApps *self = SNAPD_GET_APPS (request);
 
     g_autoptr(GPtrArray) query_attributes = g_ptr_array_new_with_free_func (g_free);
     if (self->select != NULL) {
-        g_autofree gchar *escaped = soup_uri_encode (self->select, NULL);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("select=%s", escaped));
+        g_autoptr(GString) attr = g_string_new("select=");
+        g_string_append_uri_escaped (attr, self->select, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
     if (self->snaps != NULL) {
-        g_autofree gchar *snaps_list = g_strjoinv (",", self->snaps);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("names=%s", snaps_list));
+        g_autoptr(GString) attr = g_string_new("names=");
+        for (guint i = 0; self->snaps[i] != NULL; i++) {
+            if (i != 0)
+                g_string_append (attr, ",");
+            g_string_append_uri_escaped (attr, self->snaps[i], NULL, TRUE);
+        }
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
 
     g_autoptr(GString) path = g_string_new ("http://snapd/v2/apps");
@@ -77,11 +83,11 @@ generate_get_apps_request (SnapdRequest *request)
 }
 
 static gboolean
-parse_get_apps_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_apps_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetApps *self = SNAPD_GET_APPS (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     g_autoptr(JsonArray) result = _snapd_json_get_sync_result_a (response, error);

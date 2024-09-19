@@ -39,17 +39,17 @@ _snapd_get_system_info_get_system_information (SnapdGetSystemInfo *self)
 }
 
 static SoupMessage *
-generate_get_system_info_request (SnapdRequest *request)
+generate_get_system_info_request (SnapdRequest *request, GBytes **body)
 {
     return soup_message_new ("GET", "http://snapd/v2/system-info");
 }
 
 static gboolean
-parse_get_system_info_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_system_info_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetSystemInfo *self = SNAPD_GET_SYSTEM_INFO (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     /* FIXME: Needs json-glib to be fixed to use json_node_unref */

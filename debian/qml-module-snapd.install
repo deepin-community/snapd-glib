@@ -1,2 +1,2 @@
-usr/lib/*/qt5/qml/Snapd/*.so
-usr/lib/*/qt5/qml/Snapd/qmldir
+usr/lib/*/qt5/qml/Snapd2/*.so
+usr/lib/*/qt5/qml/Snapd2/qmldir

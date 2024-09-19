@@ -20,6 +20,7 @@ struct _SnapdGetFind
     gchar *name;
     gchar *select;
     gchar *section;
+    gchar *category;
     gchar *scope;
     gchar *suggested_currency;
     GPtrArray *snaps;
@@ -75,6 +76,13 @@ _snapd_get_find_set_section (SnapdGetFind *self, const gchar *section)
 }
 
 void
+_snapd_get_find_set_category (SnapdGetFind *self, const gchar *category)
+{
+    g_free (self->category);
+    self->category = g_strdup (category);
+}
+
+void
 _snapd_get_find_set_scope (SnapdGetFind *self, const gchar *scope)
 {
     g_free (self->scope);
@@ -94,34 +102,45 @@ _snapd_get_find_get_suggested_currency (SnapdGetFind *self)
 }
 
 static SoupMessage *
-generate_get_find_request (SnapdRequest *request)
+generate_get_find_request (SnapdRequest *request, GBytes **body)
 {
     SnapdGetFind *self = SNAPD_GET_FIND (request);
 
     g_autoptr(GPtrArray) query_attributes = g_ptr_array_new_with_free_func (g_free);
     if (self->common_id != NULL) {
-        g_autofree gchar *escaped = soup_uri_encode (self->common_id, NULL);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("common-id=%s", escaped));
+        g_autoptr(GString) attr = g_string_new ("common-id=");
+        g_string_append_uri_escaped (attr, self->common_id, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
     if (self->query != NULL) {
-        g_autofree gchar *escaped = soup_uri_encode (self->query, NULL);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("q=%s", escaped));
+        g_autoptr(GString) attr = g_string_new ("q=");
+        g_string_append_uri_escaped (attr, self->query, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
     if (self->name != NULL) {
-        g_autofree gchar *escaped = soup_uri_encode (self->name, NULL);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("name=%s", escaped));
+        g_autoptr(GString) attr = g_string_new ("name=");
+        g_string_append_uri_escaped (attr, self->name, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
     if (self->select != NULL) {
-        g_autofree gchar *escaped = soup_uri_encode (self->select, NULL);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("select=%s", escaped));
+        g_autoptr(GString) attr = g_string_new ("select=");
+        g_string_append_uri_escaped (attr, self->select, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
     if (self->section != NULL) {
-        g_autofree gchar *escaped = soup_uri_encode (self->section, NULL);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("section=%s", escaped));
+        g_autoptr(GString) attr = g_string_new ("section=");
+        g_string_append_uri_escaped (attr, self->section, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
+    }
+    if (self->category != NULL) {
+        g_autoptr(GString) attr = g_string_new ("category=");
+        g_string_append_uri_escaped (attr, self->category, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
     if (self->scope != NULL) {
-        g_autofree gchar *escaped = soup_uri_encode (self->scope, NULL);
-        g_ptr_array_add (query_attributes, g_strdup_printf ("scope=%s", escaped));
+        g_autoptr(GString) attr = g_string_new ("scope=");
+        g_string_append_uri_escaped (attr, self->scope, NULL, TRUE);
+        g_ptr_array_add (query_attributes, g_strdup (attr->str));
     }
 
     g_autoptr(GString) path = g_string_new ("http://snapd/v2/find");
@@ -138,11 +157,11 @@ generate_get_find_request (SnapdRequest *request)
 }
 
 static gboolean
-parse_get_find_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_find_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetFind *self = SNAPD_GET_FIND (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     g_autoptr(JsonArray) result = _snapd_json_get_sync_result_a (response, error);
@@ -177,6 +196,7 @@ snapd_get_find_finalize (GObject *object)
     g_free (self->name);
     g_free (self->select);
     g_free (self->section);
+    g_free (self->category);
     g_free (self->scope);
     g_free (self->suggested_currency);
     g_clear_pointer (&self->snaps, g_ptr_array_unref);

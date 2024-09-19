@@ -40,7 +40,7 @@ _snapd_post_download_new (const gchar *name, const gchar *channel, const gchar *
 }
 
 static SoupMessage *
-generate_post_download_request (SnapdRequest *request)
+generate_post_download_request (SnapdRequest *request, GBytes **body)
 {
     SnapdPostDownload *self = SNAPD_POST_DOWNLOAD (request);
 
@@ -59,17 +59,16 @@ generate_post_download_request (SnapdRequest *request)
         json_builder_add_string_value (builder, self->revision);
     }
     json_builder_end_object (builder);
-    _snapd_json_set_body (message, builder);
+    _snapd_json_set_body (message, builder, body);
 
     return message;
 }
 
 static gboolean
-parse_post_download_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_post_download_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdPostDownload *self = SNAPD_POST_DOWNLOAD (request);
 
-    const gchar *content_type = soup_message_headers_get_content_type (message->response_headers, NULL);
     if (g_strcmp0 (content_type, "application/octet-stream") != 0) {
         g_set_error (error,
                      SNAPD_ERROR,
@@ -78,9 +77,7 @@ parse_post_download_response (SnapdRequest *request, SoupMessage *message, Snapd
         return FALSE;
     }
 
-    g_autoptr(SoupBuffer) buffer = soup_message_body_flatten (message->response_body);
-    g_autoptr(GBytes) data = soup_buffer_get_as_bytes (buffer);
-    self->data = g_steal_pointer (&data);
+    self->data = g_bytes_ref (body);
 
     return TRUE;
 }

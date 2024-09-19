@@ -794,7 +794,7 @@ snapd_client_disconnect_interface_sync (SnapdClient *self,
  * snapd_client_find_sync:
  * @client: a #SnapdClient.
  * @flags: a set of #SnapdFindFlags to control how the find is performed.
- * @query: query string to send.
+ * @query: (allow-none): query string to send or %NULL to return featured snaps.
  * @suggested_currency: (out) (allow-none): location to store the ISO 4217 currency that is suggested to purchase with.
  * @cancellable: (allow-none): a #GCancellable or %NULL.
  * @error: (allow-none): #GError location to store the error occurring, or %NULL to ignore.
@@ -811,8 +811,7 @@ snapd_client_find_sync (SnapdClient *self,
                         gchar **suggested_currency,
                         GCancellable *cancellable, GError **error)
 {
-    g_return_val_if_fail (query != NULL, NULL);
-    return snapd_client_find_section_sync (self, flags, NULL, query, suggested_currency, cancellable, error);
+    return snapd_client_find_category_sync (self, flags, NULL, query, suggested_currency, cancellable, error);
 }
 
 /**
@@ -830,6 +829,7 @@ snapd_client_find_sync (SnapdClient *self,
  * Returns: (transfer container) (element-type SnapdSnap): an array of #SnapdSnap or %NULL on error.
  *
  * Since: 1.7
+ * Deprecated: 1.64: Use snapd_client_find_category_sync()
  */
 GPtrArray *
 snapd_client_find_section_sync (SnapdClient *self,
@@ -841,9 +841,44 @@ snapd_client_find_section_sync (SnapdClient *self,
 
     g_auto(SyncData) data = { 0 };
     start_sync (&data);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     snapd_client_find_section_async (self, flags, section, query, cancellable, sync_cb, &data);
+G_GNUC_END_IGNORE_DEPRECATIONS
     end_sync (&data);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     return snapd_client_find_section_finish (self, data.result, suggested_currency, error);
+G_GNUC_END_IGNORE_DEPRECATIONS
+}
+
+/**
+ * snapd_client_find_category_sync:
+ * @client: a #SnapdClient.
+ * @flags: a set of #SnapdFindFlags to control how the find is performed.
+ * @category: (allow-none): store category to search in or %NULL to search in all categories.
+ * @query: (allow-none): query string to send or %NULL to get all snaps from the given category.
+ * @suggested_currency: (out) (allow-none): location to store the ISO 4217 currency that is suggested to purchase with.
+ * @cancellable: (allow-none): a #GCancellable or %NULL.
+ * @error: (allow-none): #GError location to store the error occurring, or %NULL to ignore.
+ *
+ * Find snaps in the store.
+ *
+ * Returns: (transfer container) (element-type SnapdSnap): an array of #SnapdSnap or %NULL on error.
+ *
+ * Since: 1.64
+ */
+GPtrArray *
+snapd_client_find_category_sync (SnapdClient *self,
+                                 SnapdFindFlags flags, const gchar *category, const gchar *query,
+                                 gchar **suggested_currency,
+                                 GCancellable *cancellable, GError **error)
+{
+    g_return_val_if_fail (SNAPD_IS_CLIENT (self), NULL);
+
+    g_auto(SyncData) data = { 0 };
+    start_sync (&data);
+    snapd_client_find_category_async (self, flags, category, query, cancellable, sync_cb, &data);
+    end_sync (&data);
+    return snapd_client_find_category_finish (self, data.result, suggested_currency, error);
 }
 
 /**
@@ -1375,6 +1410,7 @@ snapd_client_get_users_sync (SnapdClient *self,
  * Returns: (transfer full) (array zero-terminated=1): an array of section names or %NULL on error.
  *
  * Since: 1.7
+ * Deprecated: 1.64: Use snapd_client_get_categories_sync()
  */
 GStrv
 snapd_client_get_sections_sync (SnapdClient *self,
@@ -1384,9 +1420,39 @@ snapd_client_get_sections_sync (SnapdClient *self,
 
     g_auto(SyncData) data = { 0 };
     start_sync (&data);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     snapd_client_get_sections_async (self, cancellable, sync_cb, &data);
+G_GNUC_END_IGNORE_DEPRECATIONS
     end_sync (&data);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     return snapd_client_get_sections_finish (self, data.result, error);
+G_GNUC_END_IGNORE_DEPRECATIONS
+}
+
+/**
+ * snapd_client_get_categories_sync:
+ * @client: a #SnapdClient.
+ * @cancellable: (allow-none): a #GCancellable or %NULL.
+ * @error: (allow-none): #GError location to store the error occurring, or %NULL
+ *     to ignore.
+ *
+ * Get the store categories.
+ *
+ * Returns: (transfer container) (element-type SnapdCategoryDetails): an array of #SnapdCategoryDetails or %NULL on error.
+ *
+ * Since: 1.64
+ */
+GPtrArray *
+snapd_client_get_categories_sync (SnapdClient *self,
+                                  GCancellable *cancellable, GError **error)
+{
+    g_return_val_if_fail (SNAPD_IS_CLIENT (self), NULL);
+
+    g_auto(SyncData) data = { 0 };
+    start_sync (&data);
+    snapd_client_get_categories_async (self, cancellable, sync_cb, &data);
+    end_sync (&data);
+    return snapd_client_get_categories_finish (self, data.result, error);
 }
 
 /**
@@ -1610,6 +1676,7 @@ snapd_client_reset_aliases_sync (SnapdClient *self,
  * Returns: %TRUE on success or %FALSE on error.
  *
  * Since: 1.8
+ * Deprecated: 1.59: Use snapd_client_run_snapctl2_async()
  */
 gboolean
 snapd_client_run_snapctl_sync (SnapdClient *self,
@@ -1623,9 +1690,47 @@ snapd_client_run_snapctl_sync (SnapdClient *self,
 
     g_auto(SyncData) data = { 0 };
     start_sync (&data);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     snapd_client_run_snapctl_async (self, context_id, args, cancellable, sync_cb, &data);
     end_sync (&data);
     return snapd_client_run_snapctl_finish (self, data.result, stdout_output, stderr_output, error);
+G_GNUC_END_IGNORE_DEPRECATIONS
+}
+
+/**
+ * snapd_client_run_snapctl2_sync:
+ * @client: a #SnapdClient.
+ * @context_id: context for this call.
+ * @args: the arguments to pass to snapctl.
+ * @stdout_output: (out) (allow-none): the location to write the stdout from the command or %NULL.
+ * @stderr_output: (out) (allow-none): the location to write the stderr from the command or %NULL.
+ * @exit_code: (out) (allow-none): the location to write the exit code of the command or %NULL.
+ * @cancellable: (allow-none): a #GCancellable or %NULL.
+ * @error: (allow-none): #GError location to store the error occurring, or %NULL
+ *     to ignore.
+ *
+ * Run a snapctl command.
+ *
+ * Returns: %TRUE on success or %FALSE on error.
+ *
+ * Since: 1.59
+ */
+gboolean
+snapd_client_run_snapctl2_sync (SnapdClient *self,
+                                const gchar *context_id, GStrv args,
+                                gchar **stdout_output, gchar **stderr_output,
+                                int *exit_code,
+                                GCancellable *cancellable, GError **error)
+{
+    g_return_val_if_fail (SNAPD_IS_CLIENT (self), FALSE);
+    g_return_val_if_fail (context_id != NULL, FALSE);
+    g_return_val_if_fail (args != NULL, FALSE);
+
+    g_auto(SyncData) data = { 0 };
+    start_sync (&data);
+    snapd_client_run_snapctl2_async (self, context_id, args, cancellable, sync_cb, &data);
+    end_sync (&data);
+    return snapd_client_run_snapctl2_finish (self, data.result, stdout_output, stderr_output, exit_code, error);
 }
 
 /**
@@ -1657,4 +1762,125 @@ snapd_client_download_sync (SnapdClient *self,
     snapd_client_download_async (self, name, channel, revision, cancellable, sync_cb, &data);
     end_sync (&data);
     return snapd_client_download_finish (self, data.result, error);
+}
+
+/**
+ * snapd_client_check_themes_sync:
+ * @client: a #SnapdClient.
+ * @gtk_theme_names: (allow-none): a list of GTK theme names.
+ * @icon_theme_names: (allow-none): a list of icon theme names.
+ * @sound_theme_names: (allow-none): a list of sound theme names.
+ * @gtk_theme_status: (out) (transfer container) (element-type utf8 SnapdThemeStatus): status of GTK themes.
+ * @icon_theme_status: (out) (transfer container) (element-type utf8 SnapdThemeStatus): status of icon themes.
+ * @sound_theme_status: (out) (transfer container) (element-type utf8 SnapdThemeStatus): status of sound themes.
+ * @cancellable: (allow-none): a #GCancellable or %NULL.
+ * @error: (allow-none): #GError location to store the error occurring, or %NULL to ignore.
+ *
+ * Check the status of snap packaged versions of named desktop
+ * themes. For each theme, it will determine whether it is already
+ * installed, uninstalled but available on the store, or unavailable.
+ *
+ * Since: 1.60
+ */
+gboolean
+snapd_client_check_themes_sync (SnapdClient *self, GStrv gtk_theme_names, GStrv icon_theme_names, GStrv sound_theme_names, GHashTable **gtk_theme_status, GHashTable **icon_theme_status, GHashTable **sound_theme_status, GCancellable *cancellable, GError **error)
+{
+    g_return_val_if_fail (SNAPD_IS_CLIENT (self), FALSE);
+
+    g_auto(SyncData) data = { 0 };
+    start_sync (&data);
+    snapd_client_check_themes_async (self, gtk_theme_names, icon_theme_names, sound_theme_names, cancellable, sync_cb, &data);
+    end_sync (&data);
+    return snapd_client_check_themes_finish (self, data.result, gtk_theme_status, icon_theme_status, sound_theme_status, error);
+}
+
+/**
+ * snapd_client_install_themes_sync:
+ * @client: a #SnapdClient.
+ * @gtk_theme_names: (allow-none): a list of GTK theme names.
+ * @icon_theme_names: (allow-none): a list of icon theme names.
+ * @sound_theme_names: (allow-none): a list of sound theme names.
+ * @progress_callback: (allow-none) (scope call): function to callback with progress.
+ * @progress_callback_data: (closure): user data to pass to @progress_callback.
+ * @cancellable: (allow-none): a #GCancellable or %NULL.
+ * @error: (allow-none): #GError location to store the error occurring, or %NULL to ignore.
+ *
+ * Install snaps that provide the named desktop themes. If all the
+ * named themes are in the "installed" or "unavailable" states, then
+ * an error will be returned.
+ *
+ * Since: 1.60
+ */
+gboolean
+snapd_client_install_themes_sync (SnapdClient *self, GStrv gtk_theme_names, GStrv icon_theme_names, GStrv sound_theme_names, SnapdProgressCallback progress_callback, gpointer progress_callback_data, GCancellable *cancellable, GError **error)
+{
+    g_return_val_if_fail (SNAPD_IS_CLIENT (self), FALSE);
+
+    g_auto(SyncData) data = { 0 };
+    start_sync (&data);
+    snapd_client_install_themes_async (self, gtk_theme_names, icon_theme_names, sound_theme_names, progress_callback, progress_callback_data, cancellable, sync_cb, &data);
+    end_sync (&data);
+    return snapd_client_install_themes_finish (self, data.result, error);
+}
+
+/**
+ * snapd_client_get_logs_sync:
+ * @client: a #SnapdClient.
+ * @names: (allow-none) (array zero-terminated=1): a null-terminated array of service names or %NULL.
+ * @n: the number of logs to return or 0 for default.
+ * @cancellable: (allow-none): a #GCancellable or %NULL.
+ * @error: (allow-none): #GError location to store the error occurring, or %NULL
+ *     to ignore.
+ *
+ * Get logs for snap services.
+ *
+ * Returns: (transfer container) (element-type SnapdLog): an array of #SnapdLog or %NULL on error.
+ *
+ * Since: 1.64
+ */
+GPtrArray *
+snapd_client_get_logs_sync (SnapdClient *self,
+                            GStrv names,
+                            size_t n,
+                            GCancellable *cancellable, GError **error)
+{
+    g_return_val_if_fail (SNAPD_IS_CLIENT (self), NULL);
+
+    g_auto(SyncData) data = { 0 };
+    start_sync (&data);
+    snapd_client_get_logs_async (self, names, n, cancellable, sync_cb, &data);
+    end_sync (&data);
+    return snapd_client_get_logs_finish (self, data.result, error);
+}
+
+/**
+ * snapd_client_follow_logs_sync:
+ * @client: a #SnapdClient.
+ * @names: (allow-none) (array zero-terminated=1): a null-terminated array of service names or %NULL.
+ * @log_callback: (scope async): a #SnapdLogCallback to call when a log is received.
+ * @log_callback_data: (closure): the data to pass to @log_callback.
+ * @cancellable: (allow-none): a #GCancellable or %NULL.
+ * @error: (allow-none): #GError location to store the error occurring, or %NULL
+ *     to ignore.
+ *
+ * Follow logs for snap services. This call will only complete if snapd closes the connection and will
+ * stop any other request on this client from being sent.
+ *
+ * Returns: %TRUE on success.
+ *
+ * Since: 1.64
+ */
+gboolean
+snapd_client_follow_logs_sync (SnapdClient *self,
+                               GStrv names,
+                               SnapdLogCallback log_callback, gpointer log_callback_data,
+                               GCancellable *cancellable, GError **error)
+{
+    g_return_val_if_fail (SNAPD_IS_CLIENT (self), FALSE);
+
+    g_auto(SyncData) data = { 0 };
+    start_sync (&data);
+    snapd_client_follow_logs_async (self, names, log_callback, log_callback_data, cancellable, sync_cb, &data);
+    end_sync (&data);
+    return snapd_client_follow_logs_finish (self, data.result, error);
 }

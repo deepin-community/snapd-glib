@@ -35,13 +35,14 @@ _snapd_put_snap_conf_new (const gchar *name, GHashTable *key_values, GCancellabl
 }
 
 static SoupMessage *
-generate_put_snap_conf_request (SnapdRequest *request)
+generate_put_snap_conf_request (SnapdRequest *request, GBytes **body)
 {
     SnapdPutSnapConf *self = SNAPD_PUT_SNAP_CONF (request);
 
-    g_autofree gchar *escaped = soup_uri_encode (self->name, NULL);
-    g_autofree gchar *path = g_strdup_printf ("http://snapd/v2/snaps/%s/conf", escaped);
-    SoupMessage *message = soup_message_new ("PUT", path);
+    g_autoptr(GString) path = g_string_new ("http://snapd/v2/snaps/");
+    g_string_append_uri_escaped (path, self->name, NULL, TRUE);
+    g_string_append (path, "/conf");
+    SoupMessage *message = soup_message_new ("PUT", path->str);
 
     g_autoptr(JsonBuilder) builder = json_builder_new ();
     json_builder_begin_object (builder);
@@ -56,7 +57,7 @@ generate_put_snap_conf_request (SnapdRequest *request)
         json_builder_add_value (builder, json_gvariant_serialize (conf_value));
     }
     json_builder_end_object (builder);
-    _snapd_json_set_body (message, builder);
+    _snapd_json_set_body (message, builder, body);
 
     return message;
 }

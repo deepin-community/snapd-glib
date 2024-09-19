@@ -1,6 +1,6 @@
-usr/include/snapd-glib
-usr/lib/*/pkgconfig/snapd-glib.pc
+usr/include/snapd-glib-2
+usr/lib/*/pkgconfig/snapd-glib-2.pc
 usr/lib/*/libsnapd-glib*.so
 usr/share/gir-1.0
-usr/share/gtk-doc
+usr/share/doc/libsnapd-glib-dev/html
 usr/share/vala

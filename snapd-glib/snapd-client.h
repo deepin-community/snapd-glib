@@ -19,6 +19,7 @@
 
 #include <snapd-glib/snapd-auth-data.h>
 #include <snapd-glib/snapd-icon.h>
+#include <snapd-glib/snapd-log.h>
 #include <snapd-glib/snapd-maintenance.h>
 #include <snapd-glib/snapd-snap.h>
 #include <snapd-glib/snapd-system-information.h>
@@ -208,6 +209,23 @@ typedef enum
 } SnapdGetInterfacesFlags;
 
 /**
+ * SnapdThemeStatus:
+ * @SNAPD_THEME_STATUS_INSTALLED: the theme is installed.
+ * @SNAPD_THEME_STATUS_AVAILABLE: the theme is not installed but a package is available.
+ * @SNAPD_THEME_STATUS_UNAVAILABLE: the theme is not available.
+ *
+ * The status of a snap-packaged desktop theme.
+ *
+ * Since: 1.60
+ */
+typedef enum
+{
+    SNAPD_THEME_STATUS_INSTALLED = 1,
+    SNAPD_THEME_STATUS_AVAILABLE,
+    SNAPD_THEME_STATUS_UNAVAILABLE,
+} SnapdThemeStatus;
+
+/**
  * SnapdProgressCallback:
  * @client: a #SnapdClient
  * @change: a #SnapdChange describing the change in progress
@@ -226,6 +244,18 @@ typedef enum
  * Since: 1.0
  */
 typedef void (*SnapdProgressCallback) (SnapdClient *client, SnapdChange *change, gpointer deprecated, gpointer user_data);
+
+/**
+ * SnapdLogCallback:
+ * @client: a #SnapdClient
+ * @log: a #SnapdLog received
+ * @user_data: user data passed to the callback
+ *
+ * Signature for callback function used in snapd_client_follow_logs_sync().
+ *
+ * Since: 1.64
+ */
+typedef void (*SnapdLogCallback) (SnapdClient *client, SnapdLog *log, gpointer user_data);
 
 SnapdClient            *snapd_client_new                           (void);
 
@@ -662,15 +692,34 @@ GPtrArray              *snapd_client_find_section_sync             (SnapdClient 
                                                                     const gchar          *query,
                                                                     gchar               **suggested_currency,
                                                                     GCancellable         *cancellable,
-                                                                    GError              **error);
+                                                                    GError              **error) G_DEPRECATED_FOR(snapd_client_find_category_sync);
 void                    snapd_client_find_section_async            (SnapdClient          *client,
                                                                     SnapdFindFlags        flags,
                                                                     const gchar          *section,
                                                                     const gchar          *query,
                                                                     GCancellable         *cancellable,
                                                                     GAsyncReadyCallback   callback,
-                                                                    gpointer              user_data);
+                                                                    gpointer              user_data) G_DEPRECATED_FOR(snapd_client_find_category_async);
 GPtrArray              *snapd_client_find_section_finish           (SnapdClient          *client,
+                                                                    GAsyncResult         *result,
+                                                                    gchar               **suggested_currency,
+                                                                    GError              **error) G_DEPRECATED_FOR(snapd_client_find_category_finish);
+
+GPtrArray              *snapd_client_find_category_sync            (SnapdClient          *client,
+                                                                    SnapdFindFlags        flags,
+                                                                    const gchar          *category,
+                                                                    const gchar          *query,
+                                                                    gchar               **suggested_currency,
+                                                                    GCancellable         *cancellable,
+                                                                    GError              **error);
+void                    snapd_client_find_category_async           (SnapdClient          *client,
+                                                                    SnapdFindFlags        flags,
+                                                                    const gchar          *category,
+                                                                    const gchar          *query,
+                                                                    GCancellable         *cancellable,
+                                                                    GAsyncReadyCallback   callback,
+                                                                    gpointer              user_data);
+GPtrArray              *snapd_client_find_category_finish          (SnapdClient          *client,
                                                                     GAsyncResult         *result,
                                                                     gchar               **suggested_currency,
                                                                     GError              **error);
@@ -954,12 +1003,23 @@ GPtrArray              *snapd_client_get_users_finish              (SnapdClient 
 
 GStrv                   snapd_client_get_sections_sync             (SnapdClient          *client,
                                                                     GCancellable         *cancellable,
-                                                                    GError              **error);
+                                                                    GError              **error) G_DEPRECATED;
 void                    snapd_client_get_sections_async            (SnapdClient          *client,
                                                                     GCancellable         *cancellable,
                                                                     GAsyncReadyCallback   callback,
-                                                                    gpointer              user_data);
+                                                                    gpointer              user_data) G_DEPRECATED;
 GStrv                   snapd_client_get_sections_finish           (SnapdClient          *client,
+                                                                    GAsyncResult         *result,
+                                                                    GError              **error) G_DEPRECATED;
+
+GPtrArray              *snapd_client_get_categories_sync           (SnapdClient          *client,
+                                                                    GCancellable         *cancellable,
+                                                                    GError              **error);
+void                    snapd_client_get_categories_async          (SnapdClient          *client,
+                                                                    GCancellable         *cancellable,
+                                                                    GAsyncReadyCallback   callback,
+                                                                    gpointer              user_data);
+GPtrArray              *snapd_client_get_categories_finish         (SnapdClient          *client,
                                                                     GAsyncResult         *result,
                                                                     GError              **error);
 
@@ -1091,20 +1151,40 @@ gboolean                snapd_client_reset_aliases_finish          (SnapdClient 
 gboolean                snapd_client_run_snapctl_sync              (SnapdClient          *client,
                                                                     const gchar          *context_id,
                                                                     GStrv                 args,
-                                                                    GStrv                 stdout_output,
-                                                                    GStrv                 stderr_output,
+                                                                    gchar               **stdout_output,
+                                                                    gchar               **stderr_output,
                                                                     GCancellable         *cancellable,
-                                                                    GError              **error);
+                                                                    GError              **error) G_DEPRECATED_FOR(snapd_client_run_snapctl2_sync);
 void                    snapd_client_run_snapctl_async             (SnapdClient          *client,
                                                                     const gchar          *context_id,
                                                                     GStrv                 args,
                                                                     GCancellable         *cancellable,
                                                                     GAsyncReadyCallback   callback,
-                                                                    gpointer              user_data);
+                                                                    gpointer              user_data) G_DEPRECATED_FOR(snapd_client_run_snapctl2_async);
 gboolean                snapd_client_run_snapctl_finish            (SnapdClient          *client,
                                                                     GAsyncResult         *result,
                                                                     gchar               **stdout_output,
                                                                     gchar               **stderr_output,
+                                                                    GError              **error) G_DEPRECATED_FOR(snapd_client_run_snapctl2_finish);
+gboolean                snapd_client_run_snapctl2_sync             (SnapdClient          *client,
+                                                                    const gchar          *context_id,
+                                                                    GStrv                 args,
+                                                                    gchar               **stdout_output,
+                                                                    gchar               **stderr_output,
+                                                                    int                  *exit_code,
+                                                                    GCancellable         *cancellable,
+                                                                    GError              **error);
+void                    snapd_client_run_snapctl2_async            (SnapdClient          *client,
+                                                                    const gchar          *context_id,
+                                                                    GStrv                 args,
+                                                                    GCancellable         *cancellable,
+                                                                    GAsyncReadyCallback   callback,
+                                                                    gpointer              user_data);
+gboolean                snapd_client_run_snapctl2_finish           (SnapdClient          *client,
+                                                                    GAsyncResult         *result,
+                                                                    gchar               **stdout_output,
+                                                                    gchar               **stderr_output,
+                                                                    int                  *exit_code,
                                                                     GError              **error);
 
 GBytes                 *snapd_client_download_sync                 (SnapdClient          *client,
@@ -1121,6 +1201,82 @@ void                    snapd_client_download_async                (SnapdClient 
                                                                     GAsyncReadyCallback   callback,
                                                                     gpointer              user_data);
 GBytes                 *snapd_client_download_finish               (SnapdClient          *client,
+                                                                    GAsyncResult         *result,
+                                                                    GError              **error);
+
+gboolean                snapd_client_check_themes_sync             (SnapdClient          *client,
+                                                                    GStrv                 gtk_theme_names,
+                                                                    GStrv                 icon_theme_names,
+                                                                    GStrv                 sound_theme_names,
+                                                                    GHashTable          **gtk_theme_status,
+                                                                    GHashTable          **icon_theme_status,
+                                                                    GHashTable          **sound_theme_status,
+                                                                    GCancellable         *cancellable,
+                                                                    GError              **error);
+void                    snapd_client_check_themes_async            (SnapdClient          *client,
+                                                                    GStrv                 gtk_theme_names,
+                                                                    GStrv                 icon_theme_names,
+                                                                    GStrv                 sound_theme_names,
+                                                                    GCancellable         *cancellable,
+                                                                    GAsyncReadyCallback   callback,
+                                                                    gpointer              user_data);
+gboolean                snapd_client_check_themes_finish           (SnapdClient          *client,
+                                                                    GAsyncResult         *result,
+                                                                    GHashTable          **gtk_theme_status,
+                                                                    GHashTable          **icon_theme_status,
+                                                                    GHashTable          **sound_theme_status,
+                                                                    GError              **error);
+
+gboolean                snapd_client_install_themes_sync           (SnapdClient          *client,
+                                                                    GStrv                 gtk_theme_names,
+                                                                    GStrv                 icon_theme_names,
+                                                                    GStrv                 sound_theme_names,
+                                                                    SnapdProgressCallback progress_callback,
+                                                                    gpointer              progress_callback_data,
+                                                                    GCancellable         *cancellable,
+                                                                    GError              **error);
+void                    snapd_client_install_themes_async          (SnapdClient          *client,
+                                                                    GStrv                 gtk_theme_names,
+                                                                    GStrv                 icon_theme_names,
+                                                                    GStrv                 sound_theme_names,
+                                                                    SnapdProgressCallback progress_callback,
+                                                                    gpointer              progress_callback_data,
+                                                                    GCancellable         *cancellable,
+                                                                    GAsyncReadyCallback   callback,
+                                                                    gpointer              user_data);
+gboolean                snapd_client_install_themes_finish         (SnapdClient          *client,
+                                                                    GAsyncResult         *result,
+                                                                    GError              **error);
+
+GPtrArray              *snapd_client_get_logs_sync                 (SnapdClient          *client,
+                                                                    GStrv                 names,
+                                                                    size_t                n,
+                                                                    GCancellable         *cancellable,
+                                                                    GError              **error);
+void                    snapd_client_get_logs_async                (SnapdClient          *client,
+                                                                    GStrv                 names,
+                                                                    size_t                n,
+                                                                    GCancellable         *cancellable,
+                                                                    GAsyncReadyCallback   callback,
+                                                                    gpointer              user_data);
+GPtrArray              *snapd_client_get_logs_finish               (SnapdClient          *client,
+                                                                    GAsyncResult         *result,
+                                                                    GError              **error);
+
+gboolean                snapd_client_follow_logs_sync              (SnapdClient          *client,
+                                                                    GStrv                 names,
+                                                                    SnapdLogCallback      log_callback,
+                                                                    gpointer              log_callback_data,
+                                                                    GCancellable         *cancellable,
+                                                                    GError              **error);
+void                    snapd_client_follow_logs_async             (SnapdClient          *client,
+                                                                    GStrv                 names,
+                                                                    SnapdLogCallback      log_callback,
+                                                                    gpointer              log_callback_data,
+                                                                    GCancellable         *cancellable,
+                                                                    GAsyncReadyCallback   callback,
+                                                                    gpointer              user_data);
+gboolean                snapd_client_follow_logs_finish            (SnapdClient          *client,
                                                                     GAsyncResult         *result,
                                                                     GError              **error);
 

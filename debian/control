@@ -6,24 +6,26 @@ Uploaders:
  Jeremy Bicha <jbicha@debian.org>,
  Mike Gabriel <sunweaver@debian.org>,
  Robert Ancell <robert.ancell@canonical.com>
-Build-Depends: debhelper (>= 10),
-               gobject-introspection,
+Build-Depends: debhelper-compat (= 13),
+               dh-sequence-gir,
+               dh-sequence-pkgkde-symbolshelper,
                gtk-doc-tools (>= 1.20),
                libgirepository1.0-dev,
                libglib2.0-dev (>= 2.46),
                libjson-glib-dev (>= 1.2),
-               libsoup2.4-dev (>= 2.32),
+               libsoup-3.0-dev,
                meson (>= 0.43.0),
                pkg-kde-tools,
                qtbase5-dev,
                qtdeclarative5-dev,
                valac
-Standards-Version: 4.5.1
+Standards-Version: 4.6.1
+Rules-Requires-Root: no
 Homepage: https://github.com/snapcore/snapd-glib
 Vcs-Git: https://salsa.debian.org/debian-ayatana-team/snapd-glib.git
 Vcs-Browser: https://salsa.debian.org/debian-ayatana-team/snapd-glib
 
-Package: libsnapd-glib1
+Package: libsnapd-glib-2-1
 Architecture: linux-any kfreebsd-any
 Multi-Arch: same
 Depends: ${misc:Depends},
@@ -37,13 +39,13 @@ Description: GLib snapd library
  systems, enabling secure distribution of the latest apps and utilities
  for cloud, servers, desktops and the internet of things.
 
-Package: gir1.2-snapd-1
+Package: gir1.2-snapd-2
 Section: introspection
 Architecture: linux-any kfreebsd-any
 Multi-Arch: same
 Depends: ${misc:Depends},
          ${gir:Depends},
-         libsnapd-glib1 (= ${binary:Version})
+         libsnapd-glib-2-1 (= ${binary:Version})
 Description: Typelib file for libsnapd-glib1
  snapd-glib is a library to allow GLib based applications access to snapd,
  the daemon that controls Snaps.
@@ -62,10 +64,10 @@ Section: libdevel
 Architecture: linux-any kfreebsd-any
 Multi-Arch: same
 Depends: ${misc:Depends},
-         libsnapd-glib1 (= ${binary:Version}),
-         gir1.2-snapd-1 (= ${binary:Version}),
+         libsnapd-glib-2-1 (= ${binary:Version}),
+         gir1.2-snapd-2 (= ${binary:Version}),
          libglib2.0-dev,
-         libsoup2.4-dev,
+         libsoup-3.0-dev,
          libjson-glib-dev
 Description: GLib snapd library (development files)
  snapd-glib is a library to allow GLib based applications access to snapd,
@@ -78,7 +80,7 @@ Description: GLib snapd library (development files)
  This package contains header files and development information, which
  is useful for building applications that need to communicate with snapd.
 
-Package: libsnapd-qt1
+Package: libsnapd-qt-2-1
 Architecture: linux-any kfreebsd-any
 Multi-Arch: same
 Depends: ${misc:Depends},
@@ -99,6 +101,7 @@ Architecture: linux-any kfreebsd-any
 Depends: ${misc:Depends},
          ${shlibs:Depends},
 Suggests: snapd
+Multi-Arch: same
 Description: Snapd QML module
  snapd-glib is a library to allow GLib based applications access to snapd,
  the daemon that controls Snaps.
@@ -114,7 +117,7 @@ Section: libdevel
 Architecture: linux-any kfreebsd-any
 Multi-Arch: same
 Depends: ${misc:Depends},
-         libsnapd-qt1 (= ${binary:Version}),
+         libsnapd-qt-2-1 (= ${binary:Version}),
          qtbase5-dev,
 Breaks: libsnapd-glib-dev (<< 1.46)
 Replaces: libsnapd-glib-dev (<< 1.46)
@@ -132,7 +135,7 @@ Description: Qt snapd library (development files)
 
 Package: snapd-glib-tests
 Architecture: linux-any kfreebsd-any
-Multi-Arch: same
+Multi-Arch: foreign
 Depends: ${misc:Depends},
          ${shlibs:Depends}
 Description: GLib snapd library (installed tests)

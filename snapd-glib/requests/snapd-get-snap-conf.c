@@ -43,7 +43,7 @@ _snapd_get_snap_conf_get_conf (SnapdGetSnapConf *self)
 }
 
 static SoupMessage *
-generate_get_snap_conf_request (SnapdRequest *request)
+generate_get_snap_conf_request (SnapdRequest *request, GBytes **body)
 {
     SnapdGetSnapConf *self = SNAPD_GET_SNAP_CONF (request);
 
@@ -53,9 +53,9 @@ generate_get_snap_conf_request (SnapdRequest *request)
         g_ptr_array_add (query_attributes, g_strdup_printf ("keys=%s", keys_list));
     }
 
-    g_autoptr(GString) path = g_string_new ("");
-    g_autofree gchar *escaped = soup_uri_encode (self->name, NULL);
-    g_string_append_printf (path, "http://snapd/v2/snaps/%s/conf", escaped);
+    g_autoptr(GString) path = g_string_new ("http://snapd/v2/snaps/");
+    g_string_append_uri_escaped (path, self->name, NULL, TRUE);
+    g_string_append (path, "/conf");
     if (query_attributes->len > 0) {
         g_string_append_c (path, '?');
         for (guint i = 0; i < query_attributes->len; i++) {
@@ -69,11 +69,11 @@ generate_get_snap_conf_request (SnapdRequest *request)
 }
 
 static gboolean
-parse_get_snap_conf_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_snap_conf_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetSnapConf *self = SNAPD_GET_SNAP_CONF (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     g_autoptr(JsonObject) result = _snapd_json_get_sync_result_o (response, error);
