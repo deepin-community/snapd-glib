@@ -17,6 +17,7 @@ enum
 {
     PROP_PROGRESS_CALLBACK = 1,
     PROP_PROGRESS_CALLBACK_DATA,
+    PROP_CHANGE_API_PATH,
     PROP_LAST
 };
 
@@ -24,6 +25,7 @@ typedef struct
 {
     SnapdProgressCallback progress_callback;
     gpointer progress_callback_data;
+    gchar *change_api_path;
 
     /* Returned change ID for this request */
     gchar *change_id;
@@ -50,12 +52,12 @@ _snapd_request_async_parse_result (SnapdRequestAsync *self, JsonNode *result, GE
 }
 
 static gboolean
-parse_async_response (SnapdRequest *self, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_async_response (SnapdRequest *self, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdRequestAsync *r = SNAPD_REQUEST_ASYNC (self);
     SnapdRequestAsyncPrivate *priv = snapd_request_async_get_instance_private (r);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     g_autofree gchar *change_id = _snapd_json_get_async_result (response, error);
@@ -137,6 +139,26 @@ _snapd_request_async_report_progress (SnapdRequestAsync *self, SnapdClient *clie
     }
 }
 
+SnapdGetChange *
+_snapd_request_async_make_get_change_request (SnapdRequestAsync *self)
+{
+    SnapdRequestAsyncPrivate *priv = snapd_request_async_get_instance_private (self);
+    SnapdGetChange *request = _snapd_get_change_new (priv->change_id, NULL, NULL, NULL);
+
+    _snapd_get_change_set_api_path (request, priv->change_api_path);
+    return request;
+}
+
+SnapdPostChange *
+_snapd_request_async_make_post_change_request (SnapdRequestAsync *self)
+{
+    SnapdRequestAsyncPrivate *priv = snapd_request_async_get_instance_private (self);
+    SnapdPostChange *request = _snapd_post_change_new (priv->change_id, "abort", NULL, NULL, NULL);
+
+    _snapd_post_change_set_api_path (request, priv->change_api_path);
+    return request;
+}
+
 static void
 snapd_request_async_set_property (GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
 {
@@ -151,6 +173,10 @@ snapd_request_async_set_property (GObject *object, guint prop_id, const GValue *
     case PROP_PROGRESS_CALLBACK_DATA:
         priv->progress_callback_data = g_value_get_pointer (value);
         break;
+    case PROP_CHANGE_API_PATH:
+        g_free (priv->change_api_path);
+        priv->change_api_path = g_value_dup_string (value);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         break;
@@ -163,8 +189,10 @@ snapd_request_async_finalize (GObject *object)
     SnapdRequestAsync *self = SNAPD_REQUEST_ASYNC (object);
     SnapdRequestAsyncPrivate *priv = snapd_request_async_get_instance_private (self);
 
+    g_clear_pointer (&priv->change_api_path, g_free);
     g_clear_pointer (&priv->change_id, g_free);
     g_clear_object (&priv->change);
+
 
     G_OBJECT_CLASS (snapd_request_async_parent_class)->finalize (object);
 }
@@ -190,6 +218,13 @@ snapd_request_async_class_init (SnapdRequestAsyncClass *klass)
                                     g_param_spec_pointer ("progress-callback-data",
                                                           "progress-callback-data",
                                                           "Data for progress callback",
+                                                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+   g_object_class_install_property (gobject_class,
+                                    PROP_CHANGE_API_PATH,
+                                    g_param_spec_string ("change-api-path",
+                                                          "change-api-path",
+                                                          "change-api-path",
+                                                          NULL,
                                                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 

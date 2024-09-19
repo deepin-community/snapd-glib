@@ -16,6 +16,8 @@
 #include <snapd-glib/snapd-app.h>
 #include <snapd-glib/snapd-assertion.h>
 #include <snapd-glib/snapd-auth-data.h>
+#include <snapd-glib/snapd-category.h>
+#include <snapd-glib/snapd-category-details.h>
 #include <snapd-glib/snapd-channel.h>
 #include <snapd-glib/snapd-client.h>
 #include <snapd-glib/snapd-connection.h>
@@ -23,6 +25,7 @@
 #include <snapd-glib/snapd-error.h>
 #include <snapd-glib/snapd-icon.h>
 #include <snapd-glib/snapd-interface.h>
+#include <snapd-glib/snapd-log.h>
 #include <snapd-glib/snapd-login.h>
 #include <snapd-glib/snapd-maintenance.h>
 #include <snapd-glib/snapd-markdown-node.h>

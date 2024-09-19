@@ -14,23 +14,28 @@
 
 #include "snapd-error.h"
 #include "snapd-app.h"
+#include "snapd-category.h"
 #include "snapd-media.h"
 #include "snapd-screenshot.h"
 #include "snapd-task.h"
 
 void
-_snapd_json_set_body (SoupMessage *message, JsonBuilder *builder)
+_snapd_json_set_body (SoupMessage *message, JsonBuilder *builder, GBytes **body)
 {
+#if SOUP_CHECK_VERSION (2, 99, 2)
+    SoupMessageHeaders *request_headers = soup_message_get_request_headers (message);
+#else
+    SoupMessageHeaders *request_headers = message->request_headers;
+#endif
+    soup_message_headers_set_content_type (request_headers, "application/json", NULL);
+
     g_autoptr(JsonNode) json_root = json_builder_get_root (builder);
     g_autoptr(JsonGenerator) json_generator = json_generator_new ();
     json_generator_set_pretty (json_generator, TRUE);
     json_generator_set_root (json_generator, json_root);
     gsize data_length;
     g_autofree guchar *data = (guchar *) json_generator_to_data (json_generator, &data_length);
-
-    soup_message_headers_set_content_type (message->request_headers, "application/json", NULL);
-    soup_message_body_append_take (message->request_body, g_steal_pointer (&data), data_length);
-    soup_message_headers_set_content_length (message->request_headers, message->request_body->length);
+    *body = g_bytes_new_take (g_steal_pointer (&data), data_length);
 }
 
 gboolean
@@ -159,8 +164,15 @@ _snapd_json_get_date_time (JsonObject *object, const gchar *name)
         timezone_start = tokens[1];
         while (*timezone_start != '\0' && !is_timezone_prefix (*timezone_start))
             timezone_start++;
-        if (*timezone_start != '\0')
+        if (*timezone_start != '\0') {
+#ifdef GLIB_VERSION_2_68
+            timezone = g_time_zone_new_identifier (timezone_start);
+            if (timezone == NULL)
+                timezone = g_time_zone_new_utc ();
+#else
             timezone = g_time_zone_new (timezone_start);
+#endif
+        }
 
         /* Strip off timezone */
         *timezone_start = '\0';
@@ -176,12 +188,18 @@ _snapd_json_get_date_time (JsonObject *object, const gchar *name)
 }
 
 static void
-parse_error_response (JsonObject *root, GError **error)
+parse_error_response (JsonObject *root, JsonNode **error_value, GError **error)
 {
     JsonObject *result = _snapd_json_get_object (root, "result");
     gint64 status_code = _snapd_json_get_int (root, "status-code", 0);
     const gchar *kind = result != NULL ? _snapd_json_get_string (result, "kind", NULL) : NULL;
     const gchar *message = result != NULL ? _snapd_json_get_string (result, "message", NULL) : NULL;
+
+    if (error_value != NULL) {
+        *error_value = result != NULL ? json_object_get_member (result, "value") : NULL;
+        if (*error_value != NULL)
+            json_node_ref (*error_value);
+    }
 
     if (g_strcmp0 (kind, "login-required") == 0)
         g_set_error_literal (error,
@@ -308,6 +326,31 @@ parse_error_response (JsonObject *root, GError **error)
                              SNAPD_ERROR,
                              SNAPD_ERROR_OPTION_NOT_FOUND,
                              message);
+    else if (g_strcmp0 (kind, "unsuccessful") == 0)
+        g_set_error_literal (error,
+                             SNAPD_ERROR,
+                             SNAPD_ERROR_UNSUCCESSFUL,
+                             message);
+    else if (g_strcmp0 (kind, "app-not-found") == 0)
+        g_set_error_literal (error,
+                             SNAPD_ERROR,
+                             SNAPD_ERROR_APP_NOT_FOUND,
+                             message);
+    else if (g_strcmp0 (kind, "snap-architecture-not-available") == 0)
+         g_set_error_literal (error,
+                              SNAPD_ERROR,
+                              SNAPD_ERROR_ARCHITECTURE_NOT_AVAILABLE,
+                              message);
+    else if (g_strcmp0 (kind, "snap-change-conflict") == 0)
+         g_set_error_literal (error,
+                              SNAPD_ERROR,
+                              SNAPD_ERROR_CHANGE_CONFLICT,
+                              message);
+    else if (g_strcmp0 (kind, "interfaces-unchanged") == 0)
+         g_set_error_literal (error,
+                              SNAPD_ERROR,
+                              SNAPD_ERROR_INTERFACES_UNCHANGED,
+                              message);
     else {
         switch (status_code) {
         case SOUP_STATUS_BAD_REQUEST:
@@ -349,9 +392,8 @@ parse_error_response (JsonObject *root, GError **error)
 }
 
 JsonObject *
-_snapd_json_parse_response (SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+_snapd_json_parse_response (const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, JsonNode **error_value, GError **error)
 {
-    const gchar *content_type = soup_message_headers_get_content_type (message->response_headers, NULL);
     if (content_type == NULL) {
         g_set_error (error, SNAPD_ERROR, SNAPD_ERROR_BAD_RESPONSE, "snapd returned no content type");
         return NULL;
@@ -362,9 +404,8 @@ _snapd_json_parse_response (SoupMessage *message, SnapdMaintenance **maintenance
     }
 
     g_autoptr(JsonParser) parser = json_parser_new ();
-    g_autoptr(SoupBuffer) buffer = soup_message_body_flatten (message->response_body);
     g_autoptr(GError) error_local = NULL;
-    if (!json_parser_load_from_data (parser, buffer->data, buffer->length, &error_local)) {
+    if (!json_parser_load_from_data (parser, g_bytes_get_data (body, NULL), g_bytes_get_size (body), &error_local)) {
         g_set_error (error, SNAPD_ERROR, SNAPD_ERROR_BAD_RESPONSE, "Unable to parse snapd response: %s", error_local->message);
         return NULL;
     }
@@ -398,7 +439,7 @@ _snapd_json_parse_response (SoupMessage *message, SnapdMaintenance **maintenance
     }
 
     if (strcmp (json_node_get_string (type_node), "error") == 0) {
-        parse_error_response (root, error);
+        parse_error_response (root, error_value, error);
         return NULL;
     }
 
@@ -564,6 +605,7 @@ _snapd_json_parse_system_information (JsonNode *node, GError **error)
     }
     JsonObject *object = json_node_get_object (node);
 
+    const gchar *architecture = _snapd_json_get_string (object, "architecture", "");
     const gchar *confinement_string = _snapd_json_get_string (object, "confinement", "");
     SnapdSystemConfinement confinement = SNAPD_SYSTEM_CONFINEMENT_UNKNOWN;
     if (strcmp (confinement_string, "strict") == 0)
@@ -611,6 +653,7 @@ _snapd_json_parse_system_information (JsonNode *node, GError **error)
     g_autoptr(GDateTime) refresh_next = _snapd_json_get_date_time (refresh, "next");
 
     return g_object_new (SNAPD_TYPE_SYSTEM_INFORMATION,
+                         "architecture", architecture,
                          "binaries-directory", locations != NULL ? _snapd_json_get_string (locations, "snap-bin-dir", NULL) : NULL,
                          "build-id", _snapd_json_get_string (object, "build-id", NULL),
                          "confinement", confinement,
@@ -688,6 +731,24 @@ _snapd_json_parse_snap (JsonNode *node, GError **error)
         g_ptr_array_add (apps_array, app);
     }
 
+    g_autoptr(JsonArray) categories = _snapd_json_get_array (object, "categories");
+    g_autoptr(GPtrArray) categories_array = g_ptr_array_new_with_free_func (g_object_unref);
+    for (guint i = 0; i < json_array_get_length (categories); i++) {
+        JsonNode *node = json_array_get_element (categories, i);
+
+        if (json_node_get_value_type (node) != JSON_TYPE_OBJECT) {
+            g_set_error (error, SNAPD_ERROR, SNAPD_ERROR_READ_FAILED, "Unexpected categories type");
+            return NULL;
+        }
+
+        JsonObject *c = json_node_get_object (node);
+        g_autoptr(SnapdCategory) category = g_object_new (SNAPD_TYPE_CATEGORY,
+                                                          "featured", _snapd_json_get_bool (c, "featured", FALSE),
+                                                          "name", _snapd_json_get_string (c, "name", NULL),
+                                                          NULL);
+        g_ptr_array_add (categories_array, g_steal_pointer (&category));
+    }
+
     JsonObject *channels = _snapd_json_get_object (object, "channels");
     g_autoptr(GPtrArray) channels_array = g_ptr_array_new_with_free_func (g_object_unref);
     if (channels != NULL) {
@@ -733,6 +794,7 @@ _snapd_json_parse_snap (JsonNode *node, GError **error)
     g_ptr_array_add (common_ids_array, NULL);
 
     g_autoptr(GDateTime) install_date = _snapd_json_get_date_time (object, "install-date");
+    g_autoptr(GDateTime) hold = _snapd_json_get_date_time (object, "hold");
 
     JsonObject *prices = _snapd_json_get_object (object, "prices");
     g_autoptr(GPtrArray) prices_array = g_ptr_array_new_with_free_func (g_object_unref);
@@ -807,21 +869,21 @@ _snapd_json_parse_snap (JsonNode *node, GError **error)
         publisher_id = _snapd_json_get_string (publisher, "id", NULL);
         publisher_username = _snapd_json_get_string (publisher, "username", publisher_username);
         const gchar *validation = _snapd_json_get_string (publisher, "validation", NULL);
-        if (validation == NULL || g_strcmp0 (validation, "") == 0)
-            publisher_validation = SNAPD_PUBLISHER_VALIDATION_UNKNOWN;
-        else if (g_strcmp0 (validation, "unproven") == 0)
+        if (g_strcmp0 (validation, "unproven") == 0)
             publisher_validation = SNAPD_PUBLISHER_VALIDATION_UNPROVEN;
+        else if (g_strcmp0 (validation, "starred") == 0)
+            publisher_validation = SNAPD_PUBLISHER_VALIDATION_STARRED;
         else if (g_strcmp0 (validation, "verified") == 0)
             publisher_validation = SNAPD_PUBLISHER_VALIDATION_VERIFIED;
-        /* Any unknown validation is treated as verified for forwards compatibility */
         else
-            publisher_validation = SNAPD_PUBLISHER_VALIDATION_VERIFIED;
+            publisher_validation = SNAPD_PUBLISHER_VALIDATION_UNKNOWN;
     }
 
     return g_object_new (SNAPD_TYPE_SNAP,
                          "apps", apps_array,
                          "base", _snapd_json_get_string (object, "base", NULL),
                          "broken", _snapd_json_get_string (object, "broken", NULL),
+                         "categories", categories_array,
                          "channel", _snapd_json_get_string (object, "channel", NULL),
                          "channels", channels_array,
                          "common-ids", (GStrv) common_ids_array->pdata,
@@ -830,6 +892,7 @@ _snapd_json_parse_snap (JsonNode *node, GError **error)
                          "description", _snapd_json_get_string (object, "description", NULL),
                          "devmode", _snapd_json_get_bool (object, "devmode", FALSE),
                          "download-size", _snapd_json_get_int (object, "download-size", 0),
+                         "hold", hold,
                          "icon", _snapd_json_get_string (object, "icon", NULL),
                          "id", _snapd_json_get_string (object, "id", NULL),
                          "install-date", install_date,
@@ -849,6 +912,7 @@ _snapd_json_parse_snap (JsonNode *node, GError **error)
                          "screenshots", screenshots_array,
                          "snap-type", snap_type,
                          "status", snap_status,
+                         "store-url", _snapd_json_get_string (object, "store-url", NULL),
                          "summary", _snapd_json_get_string (object, "summary", NULL),
                          "title", _snapd_json_get_string (object, "title", NULL),
                          "tracking-channel", _snapd_json_get_string (object, "tracking-channel", NULL),

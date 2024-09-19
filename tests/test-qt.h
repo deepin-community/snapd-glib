@@ -784,6 +784,23 @@ public slots:
     void onComplete ();
 };
 
+class GetCategoriesHandler: public QObject
+{
+    Q_OBJECT
+
+public:
+    GetCategoriesHandler (GMainLoop *loop, QSnapdGetCategoriesRequest *request) : loop (loop), request (request) {}
+    GMainLoop *loop;
+    QSnapdGetCategoriesRequest *request;
+    ~GetCategoriesHandler ()
+    {
+        delete request;
+    }
+
+public slots:
+    void onComplete ();
+};
+
 class GetAliasesHandler: public QObject
 {
     Q_OBJECT
@@ -881,6 +898,40 @@ public:
     GMainLoop *loop;
     QSnapdDownloadRequest *request;
     ~DownloadHandler ()
+    {
+        delete request;
+    }
+
+public slots:
+    void onComplete ();
+};
+
+class CheckThemesHandler: public QObject
+{
+    Q_OBJECT
+
+public:
+    CheckThemesHandler (GMainLoop *loop, QSnapdCheckThemesRequest *request) : loop (loop), request (request) {}
+    GMainLoop *loop;
+    QSnapdCheckThemesRequest *request;
+    ~CheckThemesHandler ()
+    {
+        delete request;
+    }
+
+public slots:
+    void onComplete ();
+};
+
+class InstallThemesHandler: public QObject
+{
+    Q_OBJECT
+
+public:
+    InstallThemesHandler (GMainLoop *loop, QSnapdInstallThemesRequest *request) : loop (loop), request (request) {}
+    GMainLoop *loop;
+    QSnapdInstallThemesRequest *request;
+    ~InstallThemesHandler ()
     {
         delete request;
     }

@@ -37,17 +37,17 @@ _snapd_get_users_get_users_information (SnapdGetUsers *self)
 }
 
 static SoupMessage *
-generate_get_users_request (SnapdRequest *request)
+generate_get_users_request (SnapdRequest *request, GBytes **body)
 {
     return soup_message_new ("GET", "http://snapd/v2/users");
 }
 
 static gboolean
-parse_get_users_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_users_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetUsers *self = SNAPD_GET_USERS (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     g_autoptr(JsonArray) result = _snapd_json_get_sync_result_a (response, error);

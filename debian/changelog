@@ -1,8 +1,138 @@
-snapd-glib (1.58-4) UNRELEASED; urgency=medium
+snapd-glib (1.64-1) unstable; urgency=medium
 
-  * update
+  * New upstream release.
+  * debian/libsnapd-qt-2-1.symbols:
+    + Drop file. Resolve various issues with C++ symbols and API derivations
+      related to 3rd party code / compiler changes. (Closes: #1064650, #1067380,
+      #1015665).
+  * debian/libsnapd-glib-2-1.symbols:
+    + Update symbols.
+  * debian/copyright:
+    + Update copyright attribution for debian/.
 
- -- Ayatana Packagers <pkg-ayatana-devel@alioth-lists.debian.net>  Mon, 06 Jun 2022 18:28:31 +0800
+ -- Mike Gabriel <sunweaver@debian.org>  Mon, 25 Mar 2024 14:39:15 +0100
+
+snapd-glib (1.63-5.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Update libsnapd-qt-2-1.symbols to support riscv64. (Closes: #1052429)
+
+ -- Bo YU <tsu.yubo@gmail.com>  Mon, 08 Jan 2024 16:11:01 +0800
+
+snapd-glib (1.63-5) unstable; urgency=medium
+
+  [ Jeremy Bicha ]
+  * Build-Depend on dh-sequence-gir & dh-sequence-pkgkde-symbolshelper
+  * Simplify debian/rules a bit
+
+  [ Mike Gabriel ]
+  * debian/tests/control:
+    + Mark (only) autopkgtest 'unit' as flaky for now as suggested by
+      Paul Gevery. (Closes: #1019707, #1018083).
+
+ -- Mike Gabriel <sunweaver@debian.org>  Fri, 27 Jan 2023 20:50:10 +0100
+
+snapd-glib (1.63-4) unstable; urgency=medium
+
+  * Team upload
+  * Release to unstable
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 08 Dec 2022 18:04:57 -0500
+
+snapd-glib (1.63-3) experimental; urgency=medium
+
+  [ Debian Janitor ]
+  * debian/control:
+    + Apply multi-arch hints.
+    + qml-module-snapd: Add Multi-Arch: same.
+
+  [ Mike Gabriel ]
+  * debian/libsnapd-qt-2-1.symbols:
+    + Update .symbols file for more architectures.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Thu, 08 Dec 2022 21:47:10 +0100
+
+snapd-glib (1.63-2) experimental; urgency=medium
+
+  * debian/libsnapd-qt-2-1.symbols:
+    + Update for armel, armhf, i386, mips64el, powerpc, ppc64, ppc64el, riscv64
+      and s390x.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sun, 25 Sep 2022 23:14:47 +0200
+
+snapd-glib (1.63-1) experimental; urgency=medium
+
+  * Upload to experimental.
+
+  [ Jeremy Bicha ]
+  * New upstream release.
+  * Build with libsoup3.
+  * Update libraries for soname bump.
+
+  [ Mike Gabriel ]
+  * debian/watch:
+    + Adjust for changed URLs over at Github.
+  * debian/*.symbols:
+    + Update .symbols for 1.63.
+  * debian/control:
+    + Bump Standards-Version: to 4.6.1. No changes needed.
+  * debian/copyright:
+    + Update copyright attributions for debian/*.
+
+  [ Debian Janitor ]
+  * Set upstream metadata fields: Repository.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Thu, 22 Sep 2022 22:41:17 +0200
+
+snapd-glib (1.60-1) unstable; urgency=medium
+
+  * New upstream release.
+  * debian/*.symbols:
+    + Update .symbols files.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sat, 23 Apr 2022 00:54:39 +0200
+
+snapd-glib (1.59-3) unstable; urgency=medium
+
+  * debian/libsnapd-qt1.symbols:
+    + Update symbols from previous build logs.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sun, 28 Nov 2021 18:39:25 +0100
+
+snapd-glib (1.59-2) unstable; urgency=medium
+
+  * debian/libsnapd-qt1.symbols:
+    + Update symbols from previous build logs.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sun, 28 Nov 2021 13:23:29 +0100
+
+snapd-glib (1.59-1) unstable; urgency=medium
+
+  * New upstream release.
+  * debian/{control,compat}:
+    + Switch to debhelper-compat notation. Bump to DH compat level version 13.
+  * debian/control:
+    + Bump to Standards-Version: 4.6.0. No changes needed.
+    + Add Rules-Requires-Root: field and set it to 'no'.
+  * debian/{control,snapd-glib-tests.install}:
+    + Make snapd-glib-tests Multi-Archi:foreign (was: same).
+  * debian/rules:
+    + Add get-orig-source target for maintainers' convenience.
+  * debian/{rules,libsnapd-glib-dev.*}:
+    + Install gtk-doc files to pkg's documentation folder, register API
+      documentation with doc-base.
+  * debian/*.symbols:
+    + Update .symbols files. (Closes: #997455).
+    + Add Build-Depends-Package: metadata field.
+  * debian/libsnapd-glib-dev.examples:
+    + Add example file.
+  * debian/upstream/metadata:
+    + Add file. Comply with DEP-12.
+  * debian/copyright:
+    + Update auto-generated copyright.in file.
+    + Update copyright attributions.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sat, 27 Nov 2021 17:36:42 +0100
 
 snapd-glib (1.58-4) unstable; urgency=medium
 

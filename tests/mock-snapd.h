@@ -32,6 +32,7 @@ typedef struct _MockChange MockChange;
 typedef struct _MockChannel MockChannel;
 typedef struct _MockConnection MockConnection;
 typedef struct _MockInterface MockInterface;
+typedef struct _MockLog MockLog;
 typedef struct _MockMedia MockMedia;
 typedef struct _MockPlug MockPlug;
 typedef struct _MockPrice MockPrice;
@@ -59,6 +60,9 @@ void            mock_snapd_stop                   (MockSnapd     *snapd);
 void            mock_snapd_set_maintenance        (MockSnapd     *snapd,
                                                    const gchar   *type,
                                                    const gchar   *message);
+
+void            mock_snapd_set_architecture       (MockSnapd     *snapd,
+                                                   const gchar   *architecture);
 
 void            mock_snapd_set_build_id           (MockSnapd     *snapd,
                                                    const gchar   *build_id);
@@ -190,7 +194,7 @@ MockSnap       *mock_snapd_find_snap              (MockSnapd     *snapd,
 MockSnapshot   *mock_snapd_find_snapshot          (MockSnapd     *snapd,
                                                    const gchar   *name);
 
-void            mock_snapd_add_store_section      (MockSnapd     *snapd,
+void            mock_snapd_add_store_category     (MockSnapd     *snapd,
                                                    const gchar   *name);
 
 MockSnap       *mock_snapd_add_store_snap         (MockSnapd     *snapd,
@@ -232,6 +236,10 @@ void            mock_snap_set_base                (MockSnap      *snap,
 
 void            mock_snap_set_broken              (MockSnap      *snap,
                                                    const gchar   *broken);
+
+void            mock_snap_add_category            (MockSnap    *snap,
+                                                   const gchar *name,
+                                                   gboolean     featured);
 
 void            mock_snap_set_channel             (MockSnap      *snap,
                                                    const gchar   *channel);
@@ -306,6 +314,9 @@ void            mock_snap_set_download_size       (MockSnap      *snap,
 void            mock_snap_set_error               (MockSnap      *snap,
                                                    const gchar   *error);
 
+void            mock_snap_set_hold                (MockSnap      *snap,
+                                                   const gchar   *hold);
+
 void            mock_snap_set_icon                (MockSnap      *snap,
                                                    const gchar   *icon);
 
@@ -373,6 +384,9 @@ MockMedia      *mock_snap_add_media               (MockSnap      *snap,
 void            mock_snap_set_status              (MockSnap      *snap,
                                                    const gchar   *status);
 
+void            mock_snap_set_store_url           (MockSnap      *snap,
+                                                   const gchar   *store_url);
+
 void            mock_snap_set_summary             (MockSnap      *snap,
                                                    const gchar   *summary);
 
@@ -396,8 +410,9 @@ void            mock_snap_set_version             (MockSnap      *snap,
 void            mock_snap_set_website             (MockSnap      *snap,
                                                    const gchar   *website);
 
-void            mock_snap_add_store_section       (MockSnap      *snap,
-                                                   const gchar   *section);
+void            mock_snap_add_store_category      (MockSnap      *snap,
+                                                   const gchar   *category,
+                                                   gboolean       featured);
 
 MockPlug       *mock_snap_add_plug                (MockSnap      *snap,
                                                    MockInterface *interface,
@@ -443,6 +458,24 @@ const gchar    *mock_snapd_get_last_user_agent    (MockSnapd     *snapd);
 const gchar    *mock_snapd_get_last_accept_language (MockSnapd     *snapd);
 
 const gchar    *mock_snapd_get_last_allow_interaction (MockSnapd *snapd);
+
+void            mock_snapd_set_gtk_theme_status   (MockSnapd     *snapd,
+                                                   const gchar   *name,
+                                                   const gchar   *status);
+
+void            mock_snapd_set_icon_theme_status  (MockSnapd     *snapd,
+                                                   const gchar   *name,
+                                                   const gchar   *status);
+
+void            mock_snapd_set_sound_theme_status (MockSnapd     *snapd,
+                                                   const gchar   *name,
+                                                   const gchar   *status);
+
+void            mock_snapd_add_log                (MockSnapd     *snapd,
+                                                   const gchar   *timestamp,
+                                                   const gchar   *message,
+                                                   const gchar   *sid,
+                                                   const gchar   *pid);
 
 G_END_DECLS
 

@@ -18,6 +18,7 @@ struct _SnapdGetChange
     gchar *change_id;
     SnapdChange *change;
     JsonNode *data;
+    gchar *api_path;
 };
 
 G_DEFINE_TYPE (SnapdGetChange, snapd_get_change, snapd_request_get_type ())
@@ -53,21 +54,28 @@ _snapd_get_change_get_data (SnapdGetChange *self)
     return self->data;
 }
 
+void
+_snapd_get_change_set_api_path (SnapdGetChange *self, const gchar *api_path)
+{
+    g_free (self->api_path);
+    self->api_path = g_strdup (api_path);
+}
+
 static SoupMessage *
-generate_get_change_request (SnapdRequest *request)
+generate_get_change_request (SnapdRequest *request, GBytes **body)
 {
     SnapdGetChange *self = SNAPD_GET_CHANGE (request);
 
-    g_autofree gchar *path = g_strdup_printf ("http://snapd/v2/changes/%s", self->change_id);
+    g_autofree gchar *path = g_strdup_printf ("http://snapd%s/%s", self->api_path ? self->api_path : "/v2/changes", self->change_id);
     return soup_message_new ("GET", path);
 }
 
 static gboolean
-parse_get_change_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_change_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetChange *self = SNAPD_GET_CHANGE (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     /* FIXME: Needs json-glib to be fixed to use json_node_unref */
@@ -103,6 +111,7 @@ snapd_get_change_finalize (GObject *object)
     g_clear_pointer (&self->change_id, g_free);
     g_clear_object (&self->change);
     g_clear_pointer (&self->data, json_node_unref);
+    g_clear_pointer (&self->api_path, g_free);
 
     G_OBJECT_CLASS (snapd_get_change_parent_class)->finalize (object);
 }

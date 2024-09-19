@@ -35,6 +35,7 @@ struct _SnapdSnap
     GPtrArray *apps;
     gchar *base;
     gchar *broken;
+    GPtrArray *categories;
     gchar *channel;
     GPtrArray *channels;
     GStrv common_ids;
@@ -43,6 +44,7 @@ struct _SnapdSnap
     gchar *description;
     gboolean devmode;
     gint64 download_size;
+    GDateTime *hold;
     gchar *icon;
     gchar *id;
     GDateTime *install_date;
@@ -61,6 +63,7 @@ struct _SnapdSnap
     gchar *revision;
     GPtrArray *screenshots;
     SnapdSnapStatus status;
+    gchar *store_url;
     gchar *summary;
     gchar *title;
     gchar *tracking_channel;
@@ -74,6 +77,7 @@ struct _SnapdSnap
 enum
 {
     PROP_APPS = 1,
+    PROP_CATEGORIES,
     PROP_CHANNEL,
     PROP_CONFINEMENT,
     PROP_CONTACT,
@@ -92,6 +96,7 @@ enum
     PROP_REVISION,
     PROP_SCREENSHOTS,
     PROP_STATUS,
+    PROP_STORE_URL,
     PROP_SUMMARY,
     PROP_TRYMODE,
     PROP_SNAP_TYPE,
@@ -111,6 +116,7 @@ enum
     PROP_MOUNTED_FROM,
     PROP_MEDIA,
     PROP_WEBSITE,
+    PROP_HOLD,
     PROP_LAST
 };
 
@@ -165,6 +171,23 @@ snapd_snap_get_broken (SnapdSnap *self)
 {
     g_return_val_if_fail (SNAPD_IS_SNAP (self), NULL);
     return self->broken;
+}
+
+/**
+ * snapd_snap_get_categories:
+ * @snap: a #SnapdSnap.
+ *
+ * Gets the categories this snap belongs to.
+ *
+ * Returns: (transfer none) (element-type SnapdCategory): an array of #SnapdCategory.
+ *
+ * Since: 1.64
+ */
+GPtrArray *
+snapd_snap_get_categories (SnapdSnap *self)
+{
+    g_return_val_if_fail (SNAPD_IS_SNAP (self), NULL);
+    return self->categories;
 }
 
 /**
@@ -382,6 +405,24 @@ snapd_snap_get_download_size (SnapdSnap *self)
     g_return_val_if_fail (SNAPD_IS_SNAP (self), 0);
     return self->download_size;
 }
+
+/**
+ * snapd_snap_get_hold:
+ * @snap: a #SnapdSnap.
+ *
+ * Get the date this snap will re-enable automatic refreshing or %NULL if no hold is present.
+ *
+ * Returns: (transfer none) (allow-none): a #GDateTime or %NULL.
+ *
+ * Since: 1.64
+ */
+GDateTime *
+snapd_snap_get_hold (SnapdSnap *self)
+{
+    g_return_val_if_fail (SNAPD_IS_SNAP (self), NULL);
+    return self->hold;
+}
+
 
 /**
  * snapd_snap_get_icon:
@@ -729,6 +770,23 @@ snapd_snap_get_status (SnapdSnap *self)
 }
 
 /**
+ * snapd_snap_get_store_url:
+ * @snap: a #SnapdSnap.
+ *
+ * Get a URL to the web snap store, e.g. "https://snapcraft.io/example"
+ *
+ * Returns: (allow-none): a URL or %NULL.
+ *
+ * Since: 1.60
+ */
+const gchar *
+snapd_snap_get_store_url (SnapdSnap *self)
+{
+    g_return_val_if_fail (SNAPD_IS_SNAP (self), NULL);
+    return self->store_url;
+}
+
+/**
  * snapd_snap_get_summary:
  * @snap: a #SnapdSnap.
  *
@@ -851,6 +909,11 @@ snapd_snap_set_property (GObject *object, guint prop_id, const GValue *value, GP
         g_free (self->broken);
         self->broken = g_strdup (g_value_get_string (value));
         break;
+    case PROP_CATEGORIES:
+        g_clear_pointer (&self->categories, g_ptr_array_unref);
+        if (g_value_get_boxed (value) != NULL)
+            self->categories = g_ptr_array_ref (g_value_get_boxed (value));
+        break;
     case PROP_CHANNEL:
         g_free (self->channel);
         self->channel = g_strdup (g_value_get_string (value));
@@ -876,6 +939,11 @@ snapd_snap_set_property (GObject *object, guint prop_id, const GValue *value, GP
         break;
     case PROP_DOWNLOAD_SIZE:
         self->download_size = g_value_get_int64 (value);
+        break;
+    case PROP_HOLD:
+        g_clear_pointer (&self->hold, g_date_time_unref);
+        if (g_value_get_boxed (value) != NULL)
+            self->hold = g_date_time_ref (g_value_get_boxed (value));
         break;
     case PROP_ICON:
         g_free (self->icon);
@@ -948,6 +1016,10 @@ snapd_snap_set_property (GObject *object, guint prop_id, const GValue *value, GP
     case PROP_STATUS:
         self->status = g_value_get_enum (value);
         break;
+    case PROP_STORE_URL:
+        g_free (self->store_url);
+        self->store_url = g_strdup (g_value_get_string (value));
+        break;
     case PROP_SUMMARY:
         g_free (self->summary);
         self->summary = g_strdup (g_value_get_string (value));
@@ -1004,6 +1076,9 @@ snapd_snap_get_property (GObject *object, guint prop_id, GValue *value, GParamSp
     case PROP_BROKEN:
         g_value_set_string (value, self->broken);
         break;
+    case PROP_CATEGORIES:
+        g_value_set_boxed (value, self->categories);
+        break;
     case PROP_CHANNEL:
         g_value_set_string (value, self->channel);
         break;
@@ -1024,6 +1099,9 @@ snapd_snap_get_property (GObject *object, guint prop_id, GValue *value, GParamSp
         break;
     case PROP_DOWNLOAD_SIZE:
         g_value_set_int64 (value, self->download_size);
+        break;
+    case PROP_HOLD:
+        g_value_set_boxed (value, self->hold);
         break;
     case PROP_ICON:
         g_value_set_string (value, self->icon);
@@ -1080,6 +1158,9 @@ snapd_snap_get_property (GObject *object, guint prop_id, GValue *value, GParamSp
     case PROP_STATUS:
         g_value_set_enum (value, self->status);
         break;
+    case PROP_STORE_URL:
+        g_value_set_string (value, self->store_url);
+        break;
     case PROP_SUMMARY:
         g_value_set_string (value, self->summary);
         break;
@@ -1121,11 +1202,13 @@ snapd_snap_finalize (GObject *object)
     g_clear_pointer (&self->apps, g_ptr_array_unref);
     g_clear_pointer (&self->base, g_free);
     g_clear_pointer (&self->broken, g_free);
+    g_clear_pointer (&self->categories, g_ptr_array_unref);
     g_clear_pointer (&self->channel, g_free);
     g_clear_pointer (&self->channels, g_ptr_array_unref);
     g_clear_pointer (&self->common_ids, g_strfreev);
     g_clear_pointer (&self->contact, g_free);
     g_clear_pointer (&self->description, g_free);
+    g_clear_pointer (&self->hold, g_date_time_unref);
     g_clear_pointer (&self->icon, g_free);
     g_clear_pointer (&self->id, g_free);
     g_clear_pointer (&self->install_date, g_date_time_unref);
@@ -1139,6 +1222,7 @@ snapd_snap_finalize (GObject *object)
     g_clear_pointer (&self->publisher_username, g_free);
     g_clear_pointer (&self->revision, g_free);
     g_clear_pointer (&self->screenshots, g_ptr_array_unref);
+    g_clear_pointer (&self->store_url, g_free);
     g_clear_pointer (&self->summary, g_free);
     g_clear_pointer (&self->title, g_free);
     g_clear_pointer (&self->tracking_channel, g_free);
@@ -1163,6 +1247,13 @@ snapd_snap_class_init (SnapdSnapClass *klass)
                                      g_param_spec_boxed ("apps",
                                                          "apps",
                                                          "Apps this snap contains",
+                                                         G_TYPE_PTR_ARRAY,
+                                                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (gobject_class,
+                                     PROP_CATEGORIES,
+                                     g_param_spec_boxed ("categories",
+                                                         "categories",
+                                                         "Categories this snap belongs to",
                                                          G_TYPE_PTR_ARRAY,
                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (gobject_class,
@@ -1241,6 +1332,13 @@ snapd_snap_class_init (SnapdSnapClass *klass)
                                                          "download-size",
                                                          "Download size in bytes",
                                                          G_MININT64, G_MAXINT64, 0,
+                                                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (gobject_class,
+                                     PROP_HOLD,
+                                     g_param_spec_boxed ("hold",
+                                                         "hold",
+                                                         "Date this snap will re-enable automatic refreshing",
+                                                         G_TYPE_DATE_TIME,
                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (gobject_class,
                                      PROP_ICON,
@@ -1373,6 +1471,13 @@ snapd_snap_class_init (SnapdSnapClass *klass)
                                      g_param_spec_string ("summary",
                                                           "summary",
                                                           "One line description",
+                                                          NULL,
+                                                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+    g_object_class_install_property (gobject_class,
+                                     PROP_STORE_URL,
+                                     g_param_spec_string ("store-url",
+                                                          "store-url",
+                                                          "Web store URL",
                                                           NULL,
                                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (gobject_class,

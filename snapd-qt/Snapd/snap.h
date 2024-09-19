@@ -15,6 +15,7 @@
 #include <Snapd/WrappedObject>
 #include <Snapd/Enums>
 #include <Snapd/App>
+#include <Snapd/Category>
 #include <Snapd/Channel>
 #include <Snapd/Media>
 #include <Snapd/Price>
@@ -27,6 +28,7 @@ class Q_DECL_EXPORT QSnapdSnap : public QSnapdWrappedObject
     Q_PROPERTY(int appCount READ appCount)
     Q_PROPERTY(QString base READ base)
     Q_PROPERTY(QString broken READ broken)
+    Q_PROPERTY(int categoryCount READ categoryCount)
     Q_PROPERTY(QString channel READ channel)
     Q_PROPERTY(int channelCount READ channelCount)
     Q_PROPERTY(QStringList commonIds READ commonIds)
@@ -36,6 +38,7 @@ class Q_DECL_EXPORT QSnapdSnap : public QSnapdWrappedObject
     Q_PROPERTY(QString developer READ developer)
     Q_PROPERTY(bool devmode READ devmode)
     Q_PROPERTY(qint64 downloadSize READ downloadSize)
+    Q_PROPERTY(QDateTime hold READ hold)
     Q_PROPERTY(QString icon READ icon)
     Q_PROPERTY(QString id READ id)
     Q_PROPERTY(QDateTime installDate READ installDate)
@@ -53,6 +56,7 @@ class Q_DECL_EXPORT QSnapdSnap : public QSnapdWrappedObject
     Q_PROPERTY(QString revision READ revision)
     Q_PROPERTY(QSnapdEnums::SnapType snapType READ snapType)
     Q_PROPERTY(QSnapdEnums::SnapStatus status READ status)
+    Q_PROPERTY(QString storeUrl READ summary)
     Q_PROPERTY(QString summary READ summary)
     Q_PROPERTY(QString title READ title)
     Q_PROPERTY(QString trackingChannel READ trackingChannel)
@@ -68,6 +72,8 @@ public:
     Q_INVOKABLE QSnapdApp *app (int) const;
     QString base () const;
     QString broken () const;
+    int categoryCount () const;
+    Q_INVOKABLE QSnapdCategory *category (int) const;
     QString channel () const;
     int channelCount () const;
     Q_INVOKABLE QSnapdChannel *channel (int) const;
@@ -79,6 +85,7 @@ public:
     Q_DECL_DEPRECATED_X("Use publisherUsername()") QString developer () const;
     bool devmode () const;
     qint64 downloadSize () const;
+    QDateTime hold () const;
     QString icon () const;
     QString id () const;
     QDateTime installDate () const;
@@ -101,6 +108,7 @@ public:
     Q_DECL_DEPRECATED_X("Use media()") QSnapdScreenshot *screenshot (int) const;
     QSnapdEnums::SnapType snapType () const;
     QSnapdEnums::SnapStatus status () const;
+    QString storeUrl () const;
     QString summary () const;
     QString title () const;
     QString trackingChannel () const;

@@ -30,7 +30,8 @@
 G_BEGIN_DECLS
 
 void                  _snapd_json_set_body               (SoupMessage        *message,
-                                                          JsonBuilder        *builder);
+                                                          JsonBuilder        *builder,
+                                                          GBytes            **body);
 
 gboolean              _snapd_json_get_bool               (JsonObject         *object,
                                                           const gchar        *name,
@@ -53,8 +54,10 @@ JsonObject           *_snapd_json_get_object             (JsonObject         *ob
 GDateTime            *_snapd_json_get_date_time          (JsonObject         *object,
                                                           const gchar        *name);
 
-JsonObject           *_snapd_json_parse_response         (SoupMessage        *message,
+JsonObject           *_snapd_json_parse_response         (const gchar        *content_type,
+                                                          GBytes             *body,
                                                           SnapdMaintenance **maintenance,
+                                                          JsonNode          **error_value,
                                                           GError            **error);
 
 JsonNode             *_snapd_json_get_sync_result        (JsonObject         *response,

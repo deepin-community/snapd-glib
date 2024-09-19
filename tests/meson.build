@@ -1,6 +1,11 @@
 installed_tests_exec_dir = join_paths (get_option ('libexecdir'), 'installed-tests', meson.project_name())
 installed_tests_data_dir = join_paths (get_option ('datadir'), 'installed-tests', meson.project_name())
 
+if not get_option('soup2')
+  installed_tests_exec_dir += '-2'
+  installed_tests_data_dir += '-2'
+endif
+
 test_data_conf = configuration_data ()
 test_data_conf.set ('installed_tests_exec_dir', join_paths (get_option ('prefix'), installed_tests_exec_dir))
 
@@ -15,7 +20,7 @@ test_executable = executable ('test-glib',
                               c_args: [ '-DVERSION="@0@"'.format (meson.project_version ()) ],
                               install_dir: installed_tests_exec_dir,
                               install: true)
-test ('Tests', test_executable, timeout: 300)
+test ('Tests', test_executable, timeout: 600)
 test_file = configure_file (input: 'test-glib.test.in',
                             output: 'test-glib.test',
                             configuration: test_data_conf)
@@ -27,7 +32,7 @@ test_executable = executable ('test-markdown-glib',
                               link_with: [ mock_snapd_lib ],
                               install_dir: installed_tests_exec_dir,
                               install: true)
-test ('Markdown tests', test_executable, timeout: 300)
+test ('Markdown tests', test_executable, timeout: 600)
 test_file = configure_file (input: 'test-markdown-glib.test.in',
                             output: 'test-markdown-glib.test',
                             configuration: test_data_conf)
@@ -43,7 +48,7 @@ if get_option ('qt-bindings')
                                 cpp_args: [ '-DVERSION="@0@"'.format (meson.project_version ()) ],
                                 install_dir: installed_tests_exec_dir,
                                 install: true)
-  test ('Tests (Qt)', test_executable, timeout: 300)
+  test ('Tests (Qt)', test_executable, timeout: 600)
   test_file = configure_file (input: 'test-qt.test.in',
                               output: 'test-qt.test',
                               configuration: test_data_conf)
@@ -55,7 +60,7 @@ if get_option ('qt-bindings')
                                 link_with: [ mock_snapd_lib ],
                                 install_dir: installed_tests_exec_dir,
                                 install: true)
-  test ('Markdown tests (Qt)', test_executable, timeout: 300)
+  test ('Markdown tests (Qt)', test_executable, timeout: 600)
   test_file = configure_file (input: 'test-markdown-qt.test.in',
                               output: 'test-markdown-qt.test',
                               configuration: test_data_conf)

@@ -1,10 +1,17 @@
-install_header_dir = join_paths (includedir, 'snapd-glib', 'snapd-glib')
+library_name = 'snapd-glib'
+if not get_option('soup2')
+  library_name += '-2'
+endif
+
+install_header_dir = join_paths (includedir, library_name, 'snapd-glib')
 
 source_h = [
   'snapd-alias.h',
   'snapd-app.h',
   'snapd-assertion.h',
   'snapd-auth-data.h',
+  'snapd-category.h',
+  'snapd-category-details.h',
   'snapd-change.h',
   'snapd-channel.h',
   'snapd-client.h',
@@ -12,6 +19,7 @@ source_h = [
   'snapd-error.h',
   'snapd-icon.h',
   'snapd-interface.h',
+  'snapd-log.h',
   'snapd-login.h',
   'snapd-maintenance.h',
   'snapd-markdown-node.h',
@@ -36,6 +44,7 @@ source_private_h = [
   'requests/snapd-get-apps.h',
   'requests/snapd-get-assertions.h',
   'requests/snapd-get-buy-ready.h',
+  'requests/snapd-get-categories.h',
   'requests/snapd-get-change.h',
   'requests/snapd-get-changes.h',
   'requests/snapd-get-connections.h',
@@ -43,11 +52,13 @@ source_private_h = [
   'requests/snapd-get-icon.h',
   'requests/snapd-get-interfaces.h',
   'requests/snapd-get-interfaces-legacy.h',
+  'requests/snapd-get-logs.h',
   'requests/snapd-get-sections.h',
   'requests/snapd-get-snap.h',
   'requests/snapd-get-snap-conf.h',
   'requests/snapd-get-snaps.h',
   'requests/snapd-get-system-info.h',
+  'requests/snapd-get-themes.h',
   'requests/snapd-get-users.h',
   'requests/snapd-post-aliases.h',
   'requests/snapd-post-assertions.h',
@@ -64,6 +75,7 @@ source_private_h = [
   'requests/snapd-post-snap-try.h',
   'requests/snapd-post-snaps.h',
   'requests/snapd-post-snapctl.h',
+  'requests/snapd-post-themes.h',
   'requests/snapd-put-snap-conf.h',
   'requests/snapd-request.h',
   'requests/snapd-request-async.h',
@@ -74,6 +86,8 @@ source_c = [
   'snapd-app.c',
   'snapd-assertion.c',
   'snapd-auth-data.c',
+  'snapd-category.c',
+  'snapd-category-details.c',
   'snapd-change.c',
   'snapd-channel.c',
   'snapd-client.c',
@@ -82,6 +96,7 @@ source_c = [
   'snapd-error.c',
   'snapd-icon.c',
   'snapd-interface.c',
+  'snapd-log.c',
   'snapd-login.c',
   'snapd-maintenance.c',
   'snapd-markdown-node.c',
@@ -105,6 +120,7 @@ source_private_c = [
   'requests/snapd-get-apps.c',
   'requests/snapd-get-assertions.c',
   'requests/snapd-get-buy-ready.c',
+  'requests/snapd-get-categories.c',
   'requests/snapd-get-change.c',
   'requests/snapd-get-changes.c',
   'requests/snapd-get-connections.c',
@@ -112,11 +128,13 @@ source_private_c = [
   'requests/snapd-get-icon.c',
   'requests/snapd-get-interfaces.c',
   'requests/snapd-get-interfaces-legacy.c',
+  'requests/snapd-get-logs.c',
   'requests/snapd-get-sections.c',
   'requests/snapd-get-snap.c',
   'requests/snapd-get-snap-conf.c',
   'requests/snapd-get-snaps.c',
   'requests/snapd-get-system-info.c',
+  'requests/snapd-get-themes.c',
   'requests/snapd-get-users.c',
   'requests/snapd-post-aliases.c',
   'requests/snapd-post-assertions.c',
@@ -133,6 +151,7 @@ source_private_c = [
   'requests/snapd-post-snap-try.c',
   'requests/snapd-post-snaps.c',
   'requests/snapd-post-snapctl.c',
+  'requests/snapd-post-themes.c',
   'requests/snapd-put-snap-conf.c',
   'requests/snapd-request.c',
   'requests/snapd-request-async.c',
@@ -147,7 +166,7 @@ snapd_glib_enums = gnome.mkenums ('snapd-enum-types',
                                   h_template: 'snapd-enum-types.h.in',
                                   install_header: true,
                                   install_dir: install_header_dir)
-snapd_glib_lib = library ('snapd-glib',
+snapd_glib_lib = library (library_name,
                           source_private_c + source_c + source_private_h + source_h, snapd_glib_enums,
                           version: '1.0.0',
                           include_directories: include_directories ('..'),
@@ -166,17 +185,21 @@ install_headers (source_h + [ 'snapd-glib.h' ],
 
 pc = import ('pkgconfig')
 pc.generate (libraries: [ snapd_glib_lib ],
-             filebase: 'snapd-glib',
+             filebase: library_name,
              name: 'Snapd GLib',
              description: 'Libary for accessing snapd',
              version: meson.project_version (),
-             subdirs: 'snapd-glib')
+             subdirs: library_name)
 
 if get_option ('introspection')
+  nsversion = '2'
+  if get_option('soup2')
+    nsversion = '1'
+  endif
   snapd_glib_gir = gnome.generate_gir (snapd_glib_lib,
                                        sources: source_c + source_h + snapd_glib_enums,
                                        namespace: 'Snapd',
-                                       nsversion: '1',
+                                       nsversion: nsversion,
                                        export_packages: 'snapd-glib',
                                        header: 'snapd-glib/snapd-glib.h',
                                        includes: [ 'GObject-2.0', 'Gio-2.0' ],
@@ -184,7 +207,7 @@ if get_option ('introspection')
                                        extra_args: [ '-DSNAPD_COMPILATION=1' ])
 
   if get_option ('vala-bindings')
-    gnome.generate_vapi ('snapd-glib',
+    gnome.generate_vapi (library_name,
                          sources: snapd_glib_gir[0],
                          packages: 'gio-2.0',
                          install: true)

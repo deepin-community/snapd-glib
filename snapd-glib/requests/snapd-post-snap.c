@@ -90,13 +90,13 @@ _snapd_post_snap_set_purge (SnapdPostSnap *self, gboolean purge)
 }
 
 static SoupMessage *
-generate_post_snap_request (SnapdRequest *request)
+generate_post_snap_request (SnapdRequest *request, GBytes **body)
 {
     SnapdPostSnap *self = SNAPD_POST_SNAP (request);
 
-    g_autofree gchar *escaped = soup_uri_encode (self->name, NULL);
-    g_autofree gchar *path = g_strdup_printf ("http://snapd/v2/snaps/%s", escaped);
-    SoupMessage *message = soup_message_new ("POST", path);
+    g_autoptr(GString) path = g_string_new ("http://snapd/v2/snaps/");
+    g_string_append_uri_escaped (path, self->name, NULL, TRUE);
+    SoupMessage *message = soup_message_new ("POST", path->str);
 
     g_autoptr(JsonBuilder) builder = json_builder_new ();
     json_builder_begin_object (builder);
@@ -131,7 +131,7 @@ generate_post_snap_request (SnapdRequest *request)
         json_builder_add_boolean_value (builder, TRUE);
     }
     json_builder_end_object (builder);
-    _snapd_json_set_body (message, builder);
+    _snapd_json_set_body (message, builder, body);
 
     return message;
 }

@@ -35,7 +35,7 @@ _snapd_post_logout_new (gint64 id,
 }
 
 static SoupMessage *
-generate_post_logout_request (SnapdRequest *request)
+generate_post_logout_request (SnapdRequest *request, GBytes **body)
 {
     SnapdPostLogout *self = SNAPD_POST_LOGOUT (request);
 
@@ -46,15 +46,15 @@ generate_post_logout_request (SnapdRequest *request)
     json_builder_set_member_name (builder, "id");
     json_builder_add_int_value (builder, self->id);
     json_builder_end_object (builder);
-    _snapd_json_set_body (message, builder);
+    _snapd_json_set_body (message, builder, body);
 
     return message;
 }
 
 static gboolean
-parse_post_logout_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_post_logout_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     /* FIXME: Needs json-glib to be fixed to use json_node_unref */

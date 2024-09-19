@@ -40,22 +40,22 @@ _snapd_get_snap_get_snap (SnapdGetSnap *self)
 }
 
 static SoupMessage *
-generate_get_snap_request (SnapdRequest *request)
+generate_get_snap_request (SnapdRequest *request, GBytes **body)
 {
     SnapdGetSnap *self = SNAPD_GET_SNAP (request);
 
-    g_autofree gchar *escaped = soup_uri_encode (self->name, NULL);
-    g_autofree gchar *path = g_strdup_printf ("http://snapd/v2/snaps/%s", escaped);
+    g_autoptr(GString) path = g_string_new ("http://snapd/v2/snaps/");
+    g_string_append_uri_escaped (path, self->name, NULL, TRUE);
 
-    return soup_message_new ("GET", path);
+    return soup_message_new ("GET", path->str);
 }
 
 static gboolean
-parse_get_snap_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_snap_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetSnap *self = SNAPD_GET_SNAP (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     /* FIXME: Needs json-glib to be fixed to use json_node_unref */

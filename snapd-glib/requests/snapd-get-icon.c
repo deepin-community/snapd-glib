@@ -41,24 +41,24 @@ _snapd_get_icon_get_icon (SnapdGetIcon *self)
 }
 
 static SoupMessage *
-generate_get_icon_request (SnapdRequest *request)
+generate_get_icon_request (SnapdRequest *request, GBytes **body)
 {
     SnapdGetIcon *self = SNAPD_GET_ICON (request);
 
-    g_autofree gchar *escaped = soup_uri_encode (self->name, NULL);
-    g_autofree gchar *path = g_strdup_printf ("http://snapd/v2/icons/%s/icon", escaped);
+    g_autoptr(GString) path = g_string_new ("http://snapd/v2/icons/");
+    g_string_append_uri_escaped (path, self->name, NULL, TRUE);
+    g_string_append (path, "/icon");
 
-    return soup_message_new ("GET", path);
+    return soup_message_new ("GET", path->str);
 }
 
 static gboolean
-parse_get_icon_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_get_icon_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdGetIcon *self = SNAPD_GET_ICON (request);
 
-    const gchar *content_type = soup_message_headers_get_content_type (message->response_headers, NULL);
     if (g_strcmp0 (content_type, "application/json") == 0) {
-        g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+        g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
         if (response == NULL)
             return FALSE;
         g_autoptr(JsonObject) result = _snapd_json_get_sync_result_o (response, error);
@@ -72,19 +72,17 @@ parse_get_icon_response (SnapdRequest *request, SoupMessage *message, SnapdMaint
         return FALSE;
     }
 
-    if (message->status_code != SOUP_STATUS_OK) {
+    if (status_code != SOUP_STATUS_OK) {
         g_set_error (error,
                      SNAPD_ERROR,
                      SNAPD_ERROR_READ_FAILED,
-                     "Got response %u retrieving icon", message->status_code);
+                     "Got response %u retrieving icon", status_code);
         return FALSE;
     }
 
-    g_autoptr(SoupBuffer) buffer = soup_message_body_flatten (message->response_body);
-    g_autoptr(GBytes) data = soup_buffer_get_as_bytes (buffer);
     g_autoptr(SnapdIcon) icon = g_object_new (SNAPD_TYPE_ICON,
                                               "mime-type", content_type,
-                                              "data", data,
+                                              "data", body,
                                               NULL);
 
     self->icon = g_steal_pointer (&icon);

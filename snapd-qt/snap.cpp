@@ -41,6 +41,24 @@ QString QSnapdSnap::broken () const
     return snapd_snap_get_broken (SNAPD_SNAP (wrapped_object));
 }
 
+int QSnapdSnap::categoryCount () const
+{
+    GPtrArray *categories;
+
+    categories = snapd_snap_get_categories (SNAPD_SNAP (wrapped_object));
+    return categories != NULL ? categories->len : 0;
+}
+
+QSnapdCategory *QSnapdSnap::category (int n) const
+{
+    GPtrArray *categories;
+
+    categories = snapd_snap_get_categories (SNAPD_SNAP (wrapped_object));
+    if (categories == NULL || n < 0 || (guint) n >= categories->len)
+        return NULL;
+    return new QSnapdCategory (categories->pdata[n]);
+}
+
 QString QSnapdSnap::channel () const
 {
     return snapd_snap_get_channel (SNAPD_SNAP (wrapped_object));
@@ -124,16 +142,6 @@ qint64 QSnapdSnap::downloadSize () const
     return snapd_snap_get_download_size (SNAPD_SNAP (wrapped_object));
 }
 
-QString QSnapdSnap::icon () const
-{
-    return snapd_snap_get_icon (SNAPD_SNAP (wrapped_object));
-}
-
-QString QSnapdSnap::id () const
-{
-    return snapd_snap_get_id (SNAPD_SNAP (wrapped_object));
-}
-
 static QDateTime convertDateTime (GDateTime *datetime)
 {
     if (datetime == NULL)
@@ -147,6 +155,21 @@ static QDateTime convertDateTime (GDateTime *datetime)
                 g_date_time_get_second (datetime),
                 g_date_time_get_microsecond (datetime) / 1000);
     return QDateTime (date, time, Qt::OffsetFromUTC, g_date_time_get_utc_offset (datetime) / 1000000);
+}
+
+QDateTime QSnapdSnap::hold () const
+{
+    return convertDateTime (snapd_snap_get_hold (SNAPD_SNAP (wrapped_object)));
+}
+
+QString QSnapdSnap::icon () const
+{
+    return snapd_snap_get_icon (SNAPD_SNAP (wrapped_object));
+}
+
+QString QSnapdSnap::id () const
+{
+    return snapd_snap_get_id (SNAPD_SNAP (wrapped_object));
 }
 
 QDateTime QSnapdSnap::installDate () const
@@ -241,6 +264,8 @@ QSnapdEnums::PublisherValidation QSnapdSnap::publisherValidation () const
     {
     case SNAPD_PUBLISHER_VALIDATION_UNPROVEN:
         return QSnapdEnums::PublisherValidationUnproven;
+    case SNAPD_PUBLISHER_VALIDATION_STARRED:
+        return QSnapdEnums::PublisherValidationStarred;
     case SNAPD_PUBLISHER_VALIDATION_VERIFIED:
         return QSnapdEnums::PublisherValidationVerified;
     case SNAPD_PUBLISHER_VALIDATION_UNKNOWN:
@@ -316,6 +341,11 @@ QSnapdEnums::SnapStatus QSnapdSnap::status () const
     default:
         return QSnapdEnums::SnapStatusUnknown;
     }
+}
+
+QString QSnapdSnap::storeUrl () const
+{
+    return snapd_snap_get_store_url (SNAPD_SNAP (wrapped_object));
 }
 
 QString QSnapdSnap::summary () const

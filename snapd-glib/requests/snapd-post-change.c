@@ -19,6 +19,7 @@ struct _SnapdPostChange
     gchar *action;
     SnapdChange *change;
     JsonNode *data;
+    gchar *api_path;
 };
 
 G_DEFINE_TYPE (SnapdPostChange, snapd_post_change, snapd_request_get_type ())
@@ -55,12 +56,19 @@ _snapd_post_change_get_data (SnapdPostChange *self)
     return self->data;
 }
 
+void
+_snapd_post_change_set_api_path (SnapdPostChange *self, const gchar *api_path)
+{
+    g_free (self->api_path);
+    self->api_path = g_strdup (api_path);
+}
+
 static SoupMessage *
-generate_post_change_request (SnapdRequest *request)
+generate_post_change_request (SnapdRequest *request, GBytes **body)
 {
     SnapdPostChange *self = SNAPD_POST_CHANGE (request);
 
-    g_autofree gchar *path = g_strdup_printf ("http://snapd/v2/changes/%s", self->change_id);
+    g_autofree gchar *path = g_strdup_printf ("http://snapd%s/%s", self->api_path ? self->api_path : "/v2/changes", self->change_id);
     SoupMessage *message = soup_message_new ("POST", path);
 
     g_autoptr(JsonBuilder) builder = json_builder_new ();
@@ -68,17 +76,17 @@ generate_post_change_request (SnapdRequest *request)
     json_builder_set_member_name (builder, "action");
     json_builder_add_string_value (builder, self->action);
     json_builder_end_object (builder);
-    _snapd_json_set_body (message, builder);
+    _snapd_json_set_body (message, builder, body);
 
     return message;
 }
 
 static gboolean
-parse_post_change_response (SnapdRequest *request, SoupMessage *message, SnapdMaintenance **maintenance, GError **error)
+parse_post_change_response (SnapdRequest *request, guint status_code, const gchar *content_type, GBytes *body, SnapdMaintenance **maintenance, GError **error)
 {
     SnapdPostChange *self = SNAPD_POST_CHANGE (request);
 
-    g_autoptr(JsonObject) response = _snapd_json_parse_response (message, maintenance, error);
+    g_autoptr(JsonObject) response = _snapd_json_parse_response (content_type, body, maintenance, NULL, error);
     if (response == NULL)
         return FALSE;
     /* FIXME: Needs json-glib to be fixed to use json_node_unref */
@@ -115,6 +123,7 @@ snapd_post_change_finalize (GObject *object)
     g_clear_pointer (&self->action, g_free);
     g_clear_object (&self->change);
     g_clear_pointer (&self->data, json_node_unref);
+    g_clear_pointer (&self->api_path, g_free);
 
     G_OBJECT_CLASS (snapd_post_change_parent_class)->finalize (object);
 }

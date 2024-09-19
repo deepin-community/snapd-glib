@@ -1,3 +1,91 @@
+Overview of changes in snapd-glib 1.64
+
+    * New API:
+      - snapd_category_details_get_name
+      - snapd_category_get_featured
+      - snapd_category_get_name
+      - snapd_client_find_category_async
+      - snapd_client_find_category_finish
+      - snapd_client_find_category_sync
+      - snapd_client_follow_logs_async
+      - snapd_client_follow_logs_finish
+      - snapd_client_follow_logs_sync
+      - snapd_client_get_categories_async
+      - snapd_client_get_categories_finish
+      - snapd_client_get_categories_sync
+      - snapd_client_get_logs_async
+      - snapd_client_get_logs_finish
+      - snapd_client_get_logs_sync
+      - snapd_log_get_message
+      - snapd_log_get_pid
+      - snapd_log_get_sid
+      - snapd_log_get_timestamp
+      - snapd_snap_get_categories
+      - snapd_snap_get_hold
+      - snapd_system_information_get_architecture
+      - SNAPD_ERROR_APP_NOT_FOUND
+      - SNAPD_ERROR_ARCHITECTURE_NOT_AVAILABLE
+      - SNAPD_ERROR_CHANGE_CONFLICT
+      - SNAPD_ERROR_INTERFACES_UNCHANGED
+    * Deprecated API:
+      - snapd_client_find_section_sync
+      - snapd_client_find_section_async
+      - snapd_client_find_section_finish
+      - snapd_client_get_sections_sync
+    * Support snap hold date field.
+    * Support system information architecture field.
+    * Implement snap categories support, replacing sections.
+    * Support getting snap service logs.
+    * Fix buffer overflow reading assertions.
+    * Fix leak in themes API.
+    * Add more snapd errors.
+    * Fix tests failing on glib 2.77.
+
+Overview of changes in snapd-glib 1.63
+
+    * Fix snapd-qt cmake configuration.
+
+Overview of changes in snapd-glib 1.62
+
+    * Fix pkg-config file for new snapd-glib version.
+
+Overview of changes in snapd-glib 1.61
+
+    * New API:
+      - SNAPD_PUBLISHER_VALIDATION_STARRED
+    * Build with soup3 by default, support soup2.
+    * Fix theme installation getting status.
+    * Don't treat unknown publisher validation as verified.
+    * Add support for starred developers.
+    * Add an example that reimplements the snap command line tool.
+    * Add Qt implementation of themes API.
+
+Overview of changes in snapd-glib 1.60
+
+    * New API:
+      - snapd_client_check_themes_async
+      - snapd_client_check_themes_finish
+      - snapd_client_check_themes_sync
+      - snapd_client_install_themes_async
+      - snapd_client_install_themes_finish
+      - snapd_client_install_themes_sync
+      - snapd_snap_get_store_url
+    * Support store-url snap field.
+    * Ensure async callbacks don't try to access destroyed Qt request objects.
+    * Add new themes API.
+    * Allow empty query in searches.
+
+Overview of changes in snapd-glib 1.59
+
+   * New API:
+     - snapd_client_run_snapctl2_async
+     - snapd_client_run_snapctl2_finish
+     - snapd_client_run_snapctl2_sync
+   * Support getting snapctl exit code
+   * Fix d_ptr leak in QSnapdMarkdownParser
+   * Stop using g_assert() in tests
+   * Fix deprecation warning using g_time_zone_new
+
 Overview of changes in snapd-glib 1.58
 
    * Fix GIR annotations on snapd_client_get_snap_conf
